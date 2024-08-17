@@ -1,0 +1,33 @@
+name: Build
+
+on:
+  push:
+  workflow_dispatch:
+
+# Allow one concurrent deployment
+concurrency:
+  group: environment-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Remove old files and folders
+        run: |
+          rm -rf package-lock.json
+          rm -rf dist
+      - name: install node v20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install NPM
+        run: npm install
+      - name: Compile TypeScript
+        run: |
+          npm run vscode:package
+      - name: Commit Distribution Files
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Github Action: Updated dist files"
