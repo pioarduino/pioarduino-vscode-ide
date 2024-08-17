@@ -18,13 +18,14 @@ jobs:
         run: |
           rm -rf package-lock.json
           rm -rf dist
+          rm -rf *.vsix
       - name: install node v20
         uses: actions/setup-node@v4
         with:
           node-version: 20
       - name: Install NPM
         run: npm install
-      - name: Compile TypeScript
+      - name: Compile vsix package
         run: |
           npm run vscode:package
       - name: Commit Distribution Files
