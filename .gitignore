@@ -1,6 +1,5 @@
 /node_modules/
 /dist
-*.vsix
 yarn.lock
 package-lock.json
 *.dict
