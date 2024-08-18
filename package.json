@@ -1,13 +1,13 @@
 {
-  "name": "platformio-ide",
-  "version": "3.3.3",
-  "publisher": "platformio",
+  "name": "pioarduino-ide",
+  "version": "1.0.0",
+  "publisher": "pioarduino",
   "engines": {
     "vscode": "^1.65.0"
   },
   "license": "Apache-2.0",
-  "displayName": "PlatformIO IDE",
-  "description": "Your Gateway to Embedded Software Development Excellence: CMSIS, ESP-IDF, FreeRTOS, libOpenCM3, mbed OS, SPL, STM32Cube, Zephyr RTOS, Arduino, ARM, AVR, Espressif (ESP8266/ESP32), FPGA, MCS-51 (8051), MSP430, Nordic (nRF51/nRF52), PIC32, RISC-V, Raspberry Pi (RP2040), STMicroelectronics (STM8/STM32), Teensy",
+  "displayName": "pioarduino IDE",
+  "description": "pioarduino a Community Fork of Platformio supporting Espressif (esp32/esp8266) Arduino, IDF",
   "categories": [
     "Programming Languages",
     "Linters",
@@ -18,22 +18,22 @@
   "keywords": [
     "embedded",
     "microcontroller",
-    "arm",
+    "xtensa",
     "risc-v",
+    "espidf",
     "arduino"
   ],
   "main": "./dist/extension",
-  "icon": "assets/images/platformio-logo.png",
-  "homepage": "https://platformio.org",
+  "homepage": "https://github.com/pioarduino",
   "author": {
-    "name": "PlatformIO Labs"
+    "name": "PlatformIO Labs, pioarduino"
   },
   "bugs": {
-    "url": "https://github.com/platformio/platformio-vscode-ide/issues"
+    "url": "https://github.com/pioarduino/pioarduino-vscode-ide/issues"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/platformio/platformio-vscode-ide.git"
+    "url": "https://github.com/pioarduino/pioarduino-vscode-ide.git"
   },
   "activationEvents": [
     "workspaceContains:**/platformio.ini",
@@ -628,18 +628,6 @@
               "image": "assets/welcome/project-inspection-demo.png",
               "altText": "PlatformIO Project Inspection Demo"
             }
-          },
-          {
-            "id": "explore-more-resources",
-            "title": "Explore more resources",
-            "description": "📦 Browse over 10,000 libraries from software vendors, open-source projects, and the community in the [PlatformIO Registry](https://bit.ly/platformio-registry).\n🚀 Learn more about getting started with [PlatformIO IDE for VSCode](https://bit.ly/platformio-ide-for-vscode-docs).\n🧡 Have any ideas or need help with your project? Ask our awesome [PlatformIO Community](https://community.platformio.org/).\n[Learn More](https://bit.ly/platformio-ide-for-vscode-docs)",
-            "media": {
-              "image": "assets/welcome/platformio-package-registry-demo.png",
-              "altText": "PlatformIO Package Registry"
-            },
-            "completionEvents": [
-              "onLink:https://bit.ly/platformio-ide-for-vscode-docs"
-            ]
           },
           {
             "id": "ready-to-start",

@@ -13,7 +13,6 @@ import * as utils from './utils';
 
 import InstallationManager from './installer/manager';
 import PIOHome from './home';
-import PIOReleaseNotes from './release-notes';
 import PIOTerminal from './terminal';
 import PIOToolbar from './toolbar';
 import ProjectManager from './project/manager';
@@ -37,7 +36,7 @@ class PlatformIOVSCodeExtension {
     this.context = context;
     this.pioHome = new PIOHome();
     this.pioTerm = new PIOTerminal();
-    this.subscriptions.push(this.pioHome, this.pioTerm, new PIOReleaseNotes());
+    this.subscriptions.push(this.pioHome, this.pioTerm);
     const hasPIOProject = getPIOProjectDirs().length > 0;
 
     // dump global state
