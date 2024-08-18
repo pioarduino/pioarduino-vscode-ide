@@ -6,7 +6,7 @@
  * the root directory of this source tree.
  */
 
-import * as pioNodeHelpers from 'pioarduino-node-helpers';
+import * as pioNodeHelpers from 'platformio-node-helpers';
 
 import os from 'os';
 import vscode from 'vscode';
@@ -54,7 +54,7 @@ export async function notifyError(title, err) {
 }
 
 export function getIDEManifest() {
-  return vscode.extensions.getExtension('platformio.platformio-ide').packageJSON;
+  return vscode.extensions.getExtension('platformio.pioarduino-ide').packageJSON;
 }
 
 export function getIDEVersion() {

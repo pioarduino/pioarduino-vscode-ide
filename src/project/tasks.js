@@ -16,7 +16,7 @@ import vscode from 'vscode';
 
 export default class ProjectTaskManager {
   static PROVIDER_TYPE = 'PlatformIO';
-  static TASKS_VIEW_ID = 'platformio-ide.projectTasks';
+  static TASKS_VIEW_ID = 'pioarduino-ide.projectTasks';
   static AUTO_REFRESH_DELAY = 500; // 0.5 sec
 
   constructor(projectDir, projectObserver) {
@@ -256,16 +256,16 @@ export default class ProjectTaskManager {
     };
 
     this.subscriptions.push(
-      vscode.commands.registerCommand('platformio-ide.build', () => _runTask('Build')),
-      vscode.commands.registerCommand('platformio-ide.upload', () =>
+      vscode.commands.registerCommand('pioarduino-ide.build', () => _runTask('Build')),
+      vscode.commands.registerCommand('pioarduino-ide.upload', () =>
         _runTask('Upload'),
       ),
-      vscode.commands.registerCommand('platformio-ide.uploadAndMonitor', () =>
+      vscode.commands.registerCommand('pioarduino-ide.uploadAndMonitor', () =>
         _runTask('Upload and Monitor'),
       ),
-      vscode.commands.registerCommand('platformio-ide.clean', () => _runTask('Clean')),
-      vscode.commands.registerCommand('platformio-ide.test', () => _runTask('Test')),
-      vscode.commands.registerCommand('platformio-ide.serialMonitor', () =>
+      vscode.commands.registerCommand('pioarduino-ide.clean', () => _runTask('Clean')),
+      vscode.commands.registerCommand('pioarduino-ide.test', () => _runTask('Test')),
+      vscode.commands.registerCommand('pioarduino-ide.serialMonitor', () =>
         _runTask('Monitor'),
       ),
     );
@@ -277,14 +277,14 @@ export default class ProjectTaskManager {
       vscode.StatusBarAlignment.Left,
       STATUS_BAR_PRIORITY_START,
     );
-    this._sbPortSwitcher.name = 'PlatformIO: Port Switcher';
+    this._sbPortSwitcher.name = 'pioarduino: Port Switcher';
     this._sbPortSwitcher.tooltip = 'Set upload/monitor/test port';
-    this._sbPortSwitcher.command = 'platformio-ide.setProjectPort';
+    this._sbPortSwitcher.command = 'pioarduino-ide.setProjectPort';
     this.switchPort(this._customPort);
 
     this.subscriptions.push(
       this._sbPortSwitcher,
-      vscode.commands.registerCommand('platformio-ide.setProjectPort', () =>
+      vscode.commands.registerCommand('pioarduino-ide.setProjectPort', () =>
         this.pickProjectPort(),
       ),
     );

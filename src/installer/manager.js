@@ -6,7 +6,7 @@
  * the root directory of this source tree.
  */
 
-import * as pioNodeHelpers from 'pioarduino-node-helpers';
+import * as pioNodeHelpers from 'platformio-node-helpers';
 
 import PIOHome from '../home';
 import { PIO_CORE_VERSION_SPEC } from '../constants';
@@ -20,7 +20,7 @@ export default class InstallationManager {
   LOCK_KEY = 'installer-lock';
 
   constructor(disableAutoUpdates = false) {
-    const config = vscode.workspace.getConfiguration('platformio-ide');
+    const config = vscode.workspace.getConfiguration('pioarduino-ide');
     this.stages = [
       new pioNodeHelpers.installer.PlatformIOCoreStage(
         {

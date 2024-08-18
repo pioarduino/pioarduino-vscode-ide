@@ -52,7 +52,7 @@ export default class ProjectTasksTreeProvider {
     treeItem.tooltip = task.title;
     treeItem.command = {
       title: task.title,
-      command: 'platformio-ide._runProjectTask',
+      command: 'pioarduino-ide._runProjectTask',
       arguments: [task],
     };
     if (!task.coreEnv && task.multienv && this.multiEnvProject) {

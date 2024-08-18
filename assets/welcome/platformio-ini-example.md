@@ -1,7 +1,7 @@
 ```ini
 ; Common configuration
 [env]
-platform = espressif32@^5
+platform = https://github.com/pioarduino/platform-espressif32/releases/download/51.03.04/platform-espressif32.zip
 framework = arduino
 board = esp32doit-devkit-v1
 monitor_speed = 921600

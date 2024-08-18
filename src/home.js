@@ -6,7 +6,7 @@
  * the root directory of this source tree.
  */
 
-import * as pioNodeHelpers from 'pioarduino-node-helpers';
+import * as pioNodeHelpers from 'platformio-node-helpers';
 
 import { disposeSubscriptions, notifyError } from './utils';
 import { getPIOProjectDirs, updateProjectItemState } from './project/helpers';

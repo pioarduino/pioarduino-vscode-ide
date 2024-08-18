@@ -24,7 +24,7 @@ class ToolbarButton {
       vscode.StatusBarAlignment.Left,
       STATUS_BAR_PRIORITY_START + options.priority + 1,
     );
-    item.name = this.tooltip || 'PlatformIO: Toolbar Item';
+    item.name = this.tooltip || 'pioarduino: Toolbar Item';
     item.text = this.text;
     item.tooltip = this.tooltip;
     item.command = {
@@ -59,7 +59,7 @@ class ToolbarButtonCommands {
 }
 
 export default class PIOToolbar {
-  static RUN_BUTTON_COMMANDS_ID = 'platformio-ide.runToolbarButtonCommand';
+  static RUN_BUTTON_COMMANDS_ID = 'pioarduino-ide.runToolbarButtonCommand';
 
   constructor(options = { filterCommands: undefined, ignoreCommands: undefined }) {
     this.options = options;
@@ -107,7 +107,7 @@ export default class PIOToolbar {
 
     this.subscriptions.push(
       vscode.workspace.onDidChangeConfiguration((e) =>
-        e.affectsConfiguration('platformio-ide.toolbar') ? this.refresh() : undefined,
+        e.affectsConfiguration('pioarduino-ide.toolbar') ? this.refresh() : undefined,
       ),
       vscode.commands.registerCommand(
         PIOToolbar.RUN_BUTTON_COMMANDS_ID,

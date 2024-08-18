@@ -1,7 +1,7 @@
 {
   "name": "pioarduino-ide",
   "version": "1.0.0",
-  "publisher": "pioarduino",
+  "publisher": "platformio",
   "engines": {
     "vscode": "^1.65.0"
   },
@@ -37,15 +37,14 @@
   },
   "activationEvents": [
     "workspaceContains:**/platformio.ini",
-    "onView:platformio-ide.quickAccess",
-    "onView:platformio-ide.projectTasks",
+    "onView:pioarduino-ide.quickAccess",
+    "onView:pioarduino-ide.projectTasks",
     "onView:platformio-debug.peripherals",
     "onView:platformio-debug.registers",
     "onView:platformio-debug.memory",
     "onView:platformio-debug.disassembly",
-    "onCommand:platformio-ide.showReleaseNotes",
-    "onCommand:platformio-ide.showHome",
-    "onCommand:platformio-ide.openPIOCoreCLI"
+    "onCommand:pioarduino-ide.showHome",
+    "onCommand:pioarduino-ide.openPIOCoreCLI"
   ],
   "contributes": {
     "languages": [
@@ -102,110 +101,105 @@
     ],
     "commands": [
       {
-        "command": "platformio-ide.showReleaseNotes",
-        "title": "Show Release Notes",
-        "category": "PlatformIO"
-      },
-      {
-        "command": "platformio-ide.showHome",
+        "command": "pioarduino-ide.showHome",
         "title": "PlatformIO Home",
         "category": "PlatformIO"
       },
       {
-        "command": "platformio-ide.openPIOCoreCLI",
-        "title": "Open PlatformIO Core CLI",
+        "command": "pioarduino-ide.openPIOCoreCLI",
+        "title": "Open pioarduino Core CLI",
         "category": "PlatformIO"
       },
       {
-        "command": "platformio-ide.newTerminal",
+        "command": "pioarduino-ide.newTerminal",
         "title": "New Terminal",
         "category": "PlatformIO",
         "enablement": "pioCoreReady"
       },
       {
-        "command": "platformio-ide.upgradeCore",
-        "title": "Upgrade PlatformIO Core",
+        "command": "pioarduino-ide.upgradeCore",
+        "title": "Upgrade pioarduino Core",
         "category": "PlatformIO",
         "enablement": "pioCoreReady"
       },
       {
-        "command": "platformio-ide.pickProjectEnv",
+        "command": "pioarduino-ide.pickProjectEnv",
         "title": "Pick Project Environment",
         "category": "PlatformIO",
         "icon": "$(root-folder)",
         "enablement": "pioProjectReady"
       },
       {
-        "command": "platformio-ide.setProjectPort",
+        "command": "pioarduino-ide.setProjectPort",
         "title": "Set Project Port (upload/monitor/test)",
         "category": "PlatformIO",
         "icon": "$(plug)",
         "enablement": "pioProjectReady"
       },
       {
-        "command": "platformio-ide.toggleMultiEnvProjectTasks",
+        "command": "pioarduino-ide.toggleMultiEnvProjectTasks",
         "title": "Toggle between Multi Environment Project Tasks",
         "category": "PlatformIO",
         "icon": "$(layers)",
         "enablement": "pioProjectTasksReady"
       },
       {
-        "command": "platformio-ide.refreshProjectTasks",
+        "command": "pioarduino-ide.refreshProjectTasks",
         "title": "Refresh Project Tasks",
         "category": "PlatformIO",
         "icon": "$(refresh)",
         "enablement": "pioProjectTasksReady"
       },
       {
-        "command": "platformio-ide.build",
+        "command": "pioarduino-ide.build",
         "title": "Build",
         "category": "PlatformIO",
         "icon": "$(check)",
         "enablement": "pioProjectTasksReady"
       },
       {
-        "command": "platformio-ide.upload",
+        "command": "pioarduino-ide.upload",
         "title": "Upload",
         "category": "PlatformIO",
         "icon": "$(arrow-right)",
         "enablement": "pioProjectTasksReady"
       },
       {
-        "command": "platformio-ide.uploadAndMonitor",
+        "command": "pioarduino-ide.uploadAndMonitor",
         "title": "Upload and Monitor",
         "category": "PlatformIO",
         "icon": "$(arrow-right)",
         "enablement": "pioProjectTasksReady"
       },
       {
-        "command": "platformio-ide.clean",
+        "command": "pioarduino-ide.clean",
         "title": "Clean",
         "category": "PlatformIO",
         "icon": "$(trashcan)",
         "enablement": "pioProjectTasksReady"
       },
       {
-        "command": "platformio-ide.serialMonitor",
+        "command": "pioarduino-ide.serialMonitor",
         "title": "Serial Monitor",
         "category": "PlatformIO",
         "icon": "$(plug)",
         "enablement": "pioProjectReady"
       },
       {
-        "command": "platformio-ide.test",
+        "command": "pioarduino-ide.test",
         "title": "Test",
         "category": "PlatformIO",
         "icon": "$(beaker)",
         "enablement": "pioProjectTasksReady"
       },
       {
-        "command": "platformio-ide.rebuildProjectIndex",
+        "command": "pioarduino-ide.rebuildProjectIndex",
         "title": "Rebuild IntelliSense Index",
         "category": "PlatformIO",
         "enablement": "pioProjectTasksReady"
       },
       {
-        "command": "platformio-ide.startDebugging",
+        "command": "pioarduino-ide.startDebugging",
         "title": "Start Debugging",
         "category": "PlatformIO",
         "enablement": "pioProjectReady"
@@ -450,18 +444,18 @@
       ],
       "view/title": [
         {
-          "command": "platformio-ide.pickProjectEnv",
-          "when": "pioProjectTasksReady && pioMultiEnvProject && view == platformio-ide.projectTasks",
+          "command": "pioarduino-ide.pickProjectEnv",
+          "when": "pioProjectTasksReady && pioMultiEnvProject && view == pioarduino-ide.projectTasks",
           "group": "navigation"
         },
         {
-          "command": "platformio-ide.toggleMultiEnvProjectTasks",
-          "when": "pioProjectTasksReady && view == platformio-ide.projectTasks",
+          "command": "pioarduino-ide.toggleMultiEnvProjectTasks",
+          "when": "pioProjectTasksReady && view == pioarduino-ide.projectTasks",
           "group": "navigation"
         },
         {
-          "command": "platformio-ide.refreshProjectTasks",
-          "when": "pioProjectTasksReady && view == platformio-ide.projectTasks",
+          "command": "pioarduino-ide.refreshProjectTasks",
+          "when": "pioProjectTasksReady && view == pioarduino-ide.projectTasks",
           "group": "navigation"
         },
         {
@@ -477,64 +471,64 @@
       ],
       "editor/title/run": [
         {
-          "command": "platformio-ide.build",
-          "when": "pioProjectReady && config.platformio-ide.showEditorTitleShortcuts",
+          "command": "pioarduino-ide.build",
+          "when": "pioProjectReady && config.pioarduino-ide.showEditorTitleShortcuts",
           "group": "pio_run@0"
         },
         {
-          "command": "platformio-ide.upload",
-          "when": "pioProjectReady && config.platformio-ide.showEditorTitleShortcuts",
+          "command": "pioarduino-ide.upload",
+          "when": "pioProjectReady && config.pioarduino-ide.showEditorTitleShortcuts",
           "group": "pio_run@1"
         },
         {
-          "command": "platformio-ide.test",
-          "when": "pioProjectReady && config.platformio-ide.showEditorTitleShortcuts",
+          "command": "pioarduino-ide.test",
+          "when": "pioProjectReady && config.pioarduino-ide.showEditorTitleShortcuts",
           "group": "pio_run@2"
         },
         {
-          "command": "platformio-ide.clean",
-          "when": "pioProjectReady && config.platformio-ide.showEditorTitleShortcuts",
+          "command": "pioarduino-ide.clean",
+          "when": "pioProjectReady && config.pioarduino-ide.showEditorTitleShortcuts",
           "group": "pio_run@3"
         }
       ],
       "editor/title": [
         {
-          "command": "platformio-ide.serialMonitor",
-          "when": "pioCoreReady && config.platformio-ide.showEditorTitleShortcuts",
+          "command": "pioarduino-ide.serialMonitor",
+          "when": "pioCoreReady && config.pioarduino-ide.showEditorTitleShortcuts",
           "group": "navigation"
         }
       ],
       "file/newFile": [
         {
-          "command": "platformio-ide.showHome",
+          "command": "pioarduino-ide.showHome",
           "when": "pioCoreReady",
           "group": "navigation"
         }
       ],
       "touchBar": [
         {
-          "command": "platformio-ide.build",
-          "when": "pioProjectReady && config.platformio-ide.showEditorTitleShortcuts",
+          "command": "pioarduino-ide.build",
+          "when": "pioProjectReady && config.pioarduino-ide.showEditorTitleShortcuts",
           "group": "z_pio_run@0"
         },
         {
-          "command": "platformio-ide.upload",
-          "when": "pioProjectReady && config.platformio-ide.showEditorTitleShortcuts",
+          "command": "pioarduino-ide.upload",
+          "when": "pioProjectReady && config.pioarduino-ide.showEditorTitleShortcuts",
           "group": "z_pio_run@1"
         },
         {
-          "command": "platformio-ide.test",
-          "when": "pioProjectReady && config.platformio-ide.showEditorTitleShortcuts",
+          "command": "pioarduino-ide.test",
+          "when": "pioProjectReady && config.pioarduino-ide.showEditorTitleShortcuts",
           "group": "z_pio_run@2"
         },
         {
-          "command": "platformio-ide.clean",
-          "when": "pioProjectReady && config.platformio-ide.showEditorTitleShortcuts",
+          "command": "pioarduino-ide.clean",
+          "when": "pioProjectReady && config.pioarduino-ide.showEditorTitleShortcuts",
           "group": "z_pio_run@3"
         },
         {
-          "command": "platformio-ide.serialMonitor",
-          "when": "pioCoreReady && config.platformio-ide.showEditorTitleShortcuts",
+          "command": "pioarduino-ide.serialMonitor",
+          "when": "pioCoreReady && config.pioarduino-ide.showEditorTitleShortcuts",
           "group": "z_pio_tools"
         }
       ]
@@ -551,13 +545,13 @@
     "views": {
       "platformio": [
         {
-          "id": "platformio-ide.projectTasks",
+          "id": "pioarduino-ide.projectTasks",
           "name": "Project Tasks",
           "when": "pioCoreReady",
           "type": "tree"
         },
         {
-          "id": "platformio-ide.quickAccess",
+          "id": "pioarduino-ide.quickAccess",
           "name": "Quick Access",
           "type": "tree"
         }
@@ -583,27 +577,27 @@
     },
     "viewsWelcome": [
       {
-        "view": "platformio-ide.projectTasks",
-        "contents": "You have not yet opened a PlatformIO project.\nYou can open an existing PlatformIO-based project (a folder that contains [platformio.ini](https://bit.ly/vscode-platformio-ini-docs) file).\n[Pick a folder](command:workbench.action.files.openFolder)\nYou can create a new PlatformIO Project or explore examples using PlatformIO Home.\n[Create New Project](command:platformio-ide.showHome)"
+        "view": "pioarduino-ide.projectTasks",
+        "contents": "You have not yet opened a pioarduino project.\nYou can open an existing PlatformIO-based project (a folder that contains [platformio.ini](https://bit.ly/vscode-platformio-ini-docs) file).\n[Pick a folder](command:workbench.action.files.openFolder)\nYou can create a new PlatformIO Project or explore examples using PlatformIO Home.\n[Create New Project](command:pioarduino-ide.showHome)"
       },
       {
-        "view": "platformio-ide.quickAccess",
-        "contents": "Initializing PlatformIO Core..."
+        "view": "pioarduino-ide.quickAccess",
+        "contents": "Initializing pioarduino Core..."
       }
     ],
     "walkthroughs": [
       {
-        "id": "platformio-ide.welcome",
-        "title": "Get started with PlatformIO IDE",
-        "description": "The most loved IDE solution for Microsoft Visual Studio Code",
+        "id": "pioarduino-ide.welcome",
+        "title": "Get started with pioarduino IDE",
+        "description": "An great IDE solution for Microsoft Visual Studio Code",
         "steps": [
           {
             "id": "platformio-core",
             "title": "Rich CLI developed for Humans",
-            "description": "[PlatformIO Core](https://bit.ly/vscode-platformio-core-docs) is the heart of PlatformIO IDE and it's your one-stop shop for professional embedded development.\nIt takes care of everything from dependency management to testing, so you can focus on what matters most – your project.\n[Install PlatformIO Core](command:platformio-ide.openPIOCoreCLI)",
+            "description": "pioarduino Core is the heart of pioarduino IDE\n[Install pioarduino Core](command:pioarduino-ide.openPIOCoreCLI)",
             "media": {
               "image": "assets/welcome/platformio-core-cli-demo.png",
-              "altText": "PlatformIO Core CLI Demo"
+              "altText": "pioarduino Core CLI Demo"
             },
             "completionEvents": [
               "onContext:pioCoreReady"
@@ -612,7 +606,7 @@
           {
             "id": "platformio.ini",
             "title": "Platform-agnostic shareable configuration",
-            "description": "[platformio.ini](https://bit.ly/vscode-platformio-ini-docs) is the single configuration file that lets you set up your development environment and share your configurations with your team or organization.\nLeverage a declarative approach to embedded development and the power of semantic versioning.\n[Learn More](https://bit.ly/vscode-platformio-ini-docs)",
+            "description": "[platformio.ini](https://bit.ly/vscode-platformio-ini-docs) is the single configuration file that lets you set up your development environment and share your configurations with your team or organization.\n[Learn More](https://bit.ly/vscode-platformio-ini-docs)",
             "media": {
               "markdown": "assets/welcome/platformio-ini-example.md"
             },
@@ -623,22 +617,22 @@
           {
             "id": "platformio-home",
             "title": "Advanced project management",
-            "description": "Boost your product development with [PIO Home](https://bit.ly/vscode-platformio-home-docs) – a powerful, modern, and interactive user interface for advanced project management.\nIt allows you to enhance your project source code with advanced instruments such as firmware explorer, memory inspection, and static code analysis.\n[Open PIO Home](command:platformio-ide.showHome)\nTip: Use 🏠 icon at the bottom status bar.",
+            "description": "Boost your product development with [PIO Home](https://bit.ly/vscode-platformio-home-docs) – a powerful, modern, and interactive user interface for advanced project management.\nIt allows you to enhance your project source code with advanced instruments such as firmware explorer, memory inspection, and static code analysis.\n[Open PIO Home](command:pioarduino-ide.showHome)\nTip: Use 🏠 icon at the bottom status bar.",
             "media": {
               "image": "assets/welcome/project-inspection-demo.png",
-              "altText": "PlatformIO Project Inspection Demo"
+              "altText": "pioarduino Project Inspection Demo"
             }
           },
           {
             "id": "ready-to-start",
             "title": "Ready to start?",
-            "description": "Navigate to the PlatformIO IDE View in the left activity bar and open an existing project or create a new one.\n[Open PlatformIO IDE View](command:workbench.view.extension.platformio)",
+            "description": "Navigate to the pioarduino IDE View in the left activity bar and open an existing project or create a new one.\n[Open pioarduino IDE View](command:workbench.view.extension.platformio)",
             "media": {
-              "image": "assets/welcome/platformio-ide-view-demo.png",
-              "altText": "PlatformIO IDE View"
+              "image": "assets/welcome/pioarduino-ide-view-demo.png",
+              "altText": "pioarduino IDE View"
             },
             "completionEvents": [
-              "onView:platformio-ide.projectTasks"
+              "onView:pioarduino-ide.projectTasks"
             ]
           }
         ]
@@ -646,17 +640,17 @@
     ],
     "keybindings": [
       {
-        "command": "platformio-ide.build",
+        "command": "pioarduino-ide.build",
         "key": "ctrl+alt+b",
         "when": "pioProjectReady"
       },
       {
-        "command": "platformio-ide.upload",
+        "command": "pioarduino-ide.upload",
         "key": "ctrl+alt+u",
         "when": "pioProjectReady"
       },
       {
-        "command": "platformio-ide.serialMonitor",
+        "command": "pioarduino-ide.serialMonitor",
         "key": "ctrl+alt+s",
         "when": "pioProjectReady"
       }
@@ -670,7 +664,7 @@
         "properties": {
           "task": {
             "type": "string",
-            "description": "PlatformIO Task ID"
+            "description": "pioarduino Task ID"
           }
         }
       }
@@ -698,82 +692,82 @@
     },
     "configuration": {
       "type": "object",
-      "title": "PlatformIO IDE",
+      "title": "pioarduino IDE",
       "properties": {
-        "platformio-ide.activateProjectOnTextEditorChange": {
+        "pioarduino-ide.activateProjectOnTextEditorChange": {
           "type": "boolean",
           "default": false,
           "description": "Automatically activate project depending on an active opened text editor"
         },
-        "platformio-ide.autoOpenPlatformIOIniFile": {
+        "pioarduino-ide.autoOpenPlatformIOIniFile": {
           "type": "boolean",
           "default": true,
           "description": "Automatically open the `platformio.ini` file from a project when no other editors are opened"
         },
-        "platformio-ide.autoCloseSerialMonitor": {
+        "pioarduino-ide.autoCloseSerialMonitor": {
           "type": "boolean",
           "default": true,
           "description": "Automatically close Serial Port Monitor before uploading/testing"
         },
-        "platformio-ide.autoRebuildAutocompleteIndex": {
+        "pioarduino-ide.autoRebuildAutocompleteIndex": {
           "type": "boolean",
           "default": true,
           "description": "Automatically rebuild the project IntelliSense index when platformio.ini is changed or when new libraries are installed"
         },
-        "platformio-ide.showEditorTitleShortcuts": {
+        "pioarduino-ide.showEditorTitleShortcuts": {
           "type": "boolean",
           "default": true,
           "description": "Show Build, Upload, Clean, and other buttons in the editor title bar"
         },
-        "platformio-ide.autoPreloadEnvTasks": {
+        "pioarduino-ide.autoPreloadEnvTasks": {
           "type": "boolean",
           "default": false,
           "description": "Automatically preload ALL project environment tasks"
         },
-        "platformio-ide.customPATH": {
+        "pioarduino-ide.customPATH": {
           "type": [
             "string",
             "null"
           ],
           "default": null,
-          "description": "Custom PATH for the `platformio` command, if you prefer to use a custom version of PlatformIO Core. Fill in the result of the system terminal command `echo $PATH` (Unix) / `echo %PATH%` (Windows)."
+          "description": "Custom PATH for the `platformio` command, if you prefer to use a custom version of pioarduino Core. Fill in the result of the system terminal command `echo $PATH` (Unix) / `echo %PATH%` (Windows)."
         },
-        "platformio-ide.reopenSerialMonitorDelay": {
+        "pioarduino-ide.reopenSerialMonitorDelay": {
           "type": "integer",
           "default": 0,
           "minimum": 0,
           "description": "Time in milliseconds after which the Serial Port Monitor is reopened"
         },
-        "platformio-ide.useBuiltinPython": {
+        "pioarduino-ide.useBuiltinPython": {
           "type": "boolean",
           "default": true,
           "description": "Use a portable Python 3 Interpreter if available"
         },
-        "platformio-ide.useBuiltinPIOCore": {
+        "pioarduino-ide.useBuiltinPIOCore": {
           "type": "boolean",
           "default": true,
-          "description": "Use a built-in PlatformIO Core"
+          "description": "Use a built-in pioarduino Core"
         },
-        "platformio-ide.useDevelopmentPIOCore": {
+        "pioarduino-ide.useDevelopmentPIOCore": {
           "type": "boolean",
           "default": false,
-          "description": "Use a development version of PlatformIO Core"
+          "description": "Use a development version of pioarduino Core"
         },
-        "platformio-ide.disablePIOHomeStartup": {
+        "pioarduino-ide.disablePIOHomeStartup": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Disable showing PIO Home at startup"
         },
-        "platformio-ide.pioHomeServerHttpHost": {
+        "pioarduino-ide.pioHomeServerHttpHost": {
           "type": "string",
           "default": "127.0.0.1",
           "description": "PIO Home server HTTP host (default is 127.0.0.1, but in case of dockerized environments 0.0.0.0)"
         },
-        "platformio-ide.pioHomeServerHttpPort": {
+        "pioarduino-ide.pioHomeServerHttpPort": {
           "type": "integer",
           "description": "PIO Home server HTTP port (the default value 0 automatically assigns a free port in the range [45000..45999])"
         },
-        "platformio-ide.customPyPiIndexUrl": {
+        "pioarduino-ide.customPyPiIndexUrl": {
           "type": [
             "string",
             "null"
@@ -781,8 +775,8 @@
           "default": null,
           "description": "Custom base URL of the Python Package Index (default `https://pypi.org/simple`)"
         },
-        "platformio-ide.toolbar": {
-          "description": "PlatformIO Toolbar",
+        "pioarduino-ide.toolbar": {
+          "description": "pioarduino Toolbar",
           "type": "array",
           "items": {
             "type": "object",
@@ -841,38 +835,38 @@
           "default": [
             {
               "text": "$(home)",
-              "tooltip": "PlatformIO: Home",
-              "commands": "platformio-ide.showHome"
+              "tooltip": "pioarduino: Home",
+              "commands": "pioarduino-ide.showHome"
             },
             {
               "text": "$(check)",
-              "tooltip": "PlatformIO: Build",
-              "commands": "platformio-ide.build"
+              "tooltip": "pioarduino: Build",
+              "commands": "pioarduino-ide.build"
             },
             {
               "text": "$(arrow-right)",
-              "tooltip": "PlatformIO: Upload",
-              "commands": "platformio-ide.upload"
+              "tooltip": "pioarduino: Upload",
+              "commands": "pioarduino-ide.upload"
             },
             {
               "text": "$(trashcan)",
-              "tooltip": "PlatformIO: Clean",
-              "commands": "platformio-ide.clean"
+              "tooltip": "pioarduino: Clean",
+              "commands": "pioarduino-ide.clean"
             },
             {
               "text": "$(beaker)",
-              "tooltip": "PlatformIO: Test",
-              "commands": "platformio-ide.test"
+              "tooltip": "pioarduino: Test",
+              "commands": "pioarduino-ide.test"
             },
             {
               "text": "$(plug)",
-              "tooltip": "PlatformIO: Serial Monitor",
-              "commands": "platformio-ide.serialMonitor"
+              "tooltip": "pioarduino: Serial Monitor",
+              "commands": "pioarduino-ide.serialMonitor"
             },
             {
               "text": "$(terminal)",
-              "tooltip": "PlatformIO: New Terminal",
-              "commands": "platformio-ide.newTerminal"
+              "tooltip": "pioarduino: New Terminal",
+              "commands": "pioarduino-ide.newTerminal"
             }
           ]
         }
@@ -887,7 +881,7 @@
   },
   "dependencies": {
     "fs-plus": "~3.1.1",
-    "pioarduino-node-helpers": "~11.3.0",
+    "platformio-node-helpers": "~11.2.0",
     "platformio-vscode-debug": "~1.4.1"
   },
   "devDependencies": {
