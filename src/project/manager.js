@@ -106,20 +106,20 @@ export default class ProjectManager {
       vscode.workspace.onDidChangeWorkspaceFolders(() =>
         this.switchToProject(this.findActiveProjectDir()),
       ),
-      vscode.commands.registerCommand('pioarduino-ide.rebuildProjectIndex', () =>
+      vscode.commands.registerCommand('platformio-ide.rebuildProjectIndex', () =>
         this._pool.getActiveObserver().rebuildIndex({ force: true }),
       ),
-      vscode.commands.registerCommand('pioarduino-ide.refreshProjectTasks', () =>
+      vscode.commands.registerCommand('platformio-ide.refreshProjectTasks', () =>
         this._taskManager.refresh({ force: true }),
       ),
-      vscode.commands.registerCommand('pioarduino-ide.toggleMultiEnvProjectTasks', () =>
+      vscode.commands.registerCommand('platformio-ide.toggleMultiEnvProjectTasks', () =>
         this._taskManager.toggleMultiEnvExplorer(),
       ),
-      vscode.commands.registerCommand('pioarduino-ide._runProjectTask', (task) =>
+      vscode.commands.registerCommand('platformio-ide._runProjectTask', (task) =>
         this._taskManager.runTask(task),
       ),
       vscode.commands.registerCommand(
-        'pioarduino-ide.activeEnvironment',
+        'platformio-ide.activeEnvironment',
         async () => await this._pool.getActiveObserver().revealActiveEnvironment(),
       ),
     ];
@@ -256,13 +256,13 @@ export default class ProjectManager {
     );
     this._sbEnvSwitcher.name = 'pioarduino: Project Environment Switcher';
     this._sbEnvSwitcher.tooltip = 'Switch pioarduino Project Environment';
-    this._sbEnvSwitcher.command = 'pioarduino-ide.pickProjectEnv';
+    this._sbEnvSwitcher.command = 'platformio-ide.pickProjectEnv';
     this._sbEnvSwitcher.text = '$(root-folder) Loading...';
     this._sbEnvSwitcher.show();
 
     this.subscriptions.push(
       this._sbEnvSwitcher,
-      vscode.commands.registerCommand('pioarduino-ide.pickProjectEnv', () =>
+      vscode.commands.registerCommand('platformio-ide.pickProjectEnv', () =>
         this.pickProjectEnv(),
       ),
     );

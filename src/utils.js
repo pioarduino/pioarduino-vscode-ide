@@ -54,7 +54,7 @@ export async function notifyError(title, err) {
 }
 
 export function getIDEManifest() {
-  return vscode.extensions.getExtension('platformio.pioarduino-ide').packageJSON;
+  return vscode.extensions.getExtension('pioarduino.pioarduino-ide').packageJSON;
 }
 
 export function getIDEVersion() {

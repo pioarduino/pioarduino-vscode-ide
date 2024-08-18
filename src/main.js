@@ -70,7 +70,7 @@ class PlatformIOVSCodeExtension {
 
     this.subscriptions.push(
       vscode.window.registerTreeDataProvider(
-        'pioarduino-ide.quickAccess',
+        'platformio-ide.quickAccess',
         new QuickAccessTreeProvider(),
       ),
     );
@@ -79,7 +79,7 @@ class PlatformIOVSCodeExtension {
 
     if (!hasPIOProject) {
       this.subscriptions.push(
-        new PIOToolbar({ filterCommands: ['pioarduino-ide.showHome'] }),
+        new PIOToolbar({ filterCommands: ['platformio-ide.showHome'] }),
       );
       return;
     }
@@ -107,14 +107,14 @@ class PlatformIOVSCodeExtension {
   }
 
   getConfiguration(id) {
-    return vscode.workspace.getConfiguration('pioarduino-ide').get(id);
+    return vscode.workspace.getConfiguration('platformio-ide').get(id);
   }
 
   loadEnterpriseSettings() {
     const ext = vscode.extensions.all.find(
       (item) =>
         item.id.startsWith('platformio.') &&
-        item.id !== 'platformio.pioarduino-ide' &&
+        item.id !== 'platformio.platformio-ide' &&
         item.isActive,
     );
     return ext && ext.exports ? ext.exports.settings : undefined;
@@ -167,7 +167,7 @@ class PlatformIOVSCodeExtension {
     const doInstall = await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Window,
-        title: 'PlatformIO',
+        title: 'pioarduino',
       },
       async (progress) => {
         progress.report({
@@ -242,29 +242,29 @@ class PlatformIOVSCodeExtension {
     ) {
       return;
     }
-    vscode.commands.executeCommand('pioarduino-ide.showHome');
+    vscode.commands.executeCommand('platformio-ide.showHome');
   }
 
   registerGlobalCommands() {
     this.subscriptions.push(
-      vscode.commands.registerCommand('pioarduino-ide.showHome', (startUrl) =>
+      vscode.commands.registerCommand('platformio-ide.showHome', (startUrl) =>
         this.pioHome.toggle(startUrl),
       ),
-      vscode.commands.registerCommand('pioarduino-ide.newTerminal', () =>
+      vscode.commands.registerCommand('platformio-ide.newTerminal', () =>
         this.pioTerm.new().show(),
       ),
-      vscode.commands.registerCommand('pioarduino-ide.openPIOCoreCLI', () =>
+      vscode.commands.registerCommand('platformio-ide.openPIOCoreCLI', () =>
         this.pioTerm.sendText('pio --help'),
       ),
-      vscode.commands.registerCommand('pioarduino-ide.runPIOCoreCommand', (cmd) =>
+      vscode.commands.registerCommand('platformio-ide.runPIOCoreCommand', (cmd) =>
         this.pioTerm.sendText(cmd),
       ),
-      vscode.commands.registerCommand('pioarduino-ide.startDebugging', () => {
+      vscode.commands.registerCommand('platformio-ide.startDebugging', () => {
         vscode.commands.executeCommand('workbench.view.debug');
         vscode.commands.executeCommand('workbench.debug.action.toggleRepl');
         vscode.commands.executeCommand('workbench.action.debug.start');
       }),
-      vscode.commands.registerCommand('pioarduino-ide.upgradeCore', () =>
+      vscode.commands.registerCommand('platformio-ide.upgradeCore', () =>
         this.pioTerm.sendText('pio upgrade'),
       ),
     );
@@ -277,7 +277,7 @@ class PlatformIOVSCodeExtension {
   handleUseDevelopmentPIOCoreConfiguration() {
     return vscode.workspace.onDidChangeConfiguration(async (e) => {
       if (
-        !e.affectsConfiguration('pioarduino-ide.useDevelopmentPIOCore') ||
+        !e.affectsConfiguration('platformio-ide.useDevelopmentPIOCore') ||
         !this.getConfiguration('useBuiltinPIOCore')
       ) {
         return;

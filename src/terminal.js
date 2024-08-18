@@ -20,7 +20,7 @@ export default class PIOTerminal {
       envClone.Path = process.env.PLATFORMIO_PATH;
     }
     return vscode.window.createTerminal({
-      name: 'PlatformIO CLI',
+      name: 'pioarduino CLI',
       env: envClone,
     });
   }

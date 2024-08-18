@@ -34,16 +34,16 @@ export default class QuickAccessTreeProvider {
         undefined,
         vscode.TreeItemCollapsibleState.Expanded,
         [
-          new QuickItem('Open', 'pioarduino-ide.showHome'),
-          new QuickItem('PIO Account', 'pioarduino-ide.showHome', ['/account']),
-          new QuickItem('Inspect', 'pioarduino-ide.showHome', ['/inspect']),
-          new QuickItem('Projects & Configuration', 'pioarduino-ide.showHome', [
+          new QuickItem('Open', 'platformio-ide.showHome'),
+          new QuickItem('PIO Account', 'platformio-ide.showHome', ['/account']),
+          new QuickItem('Inspect', 'platformio-ide.showHome', ['/inspect']),
+          new QuickItem('Projects & Configuration', 'platformio-ide.showHome', [
             '/projects',
           ]),
-          new QuickItem('Libraries', 'pioarduino-ide.showHome', ['/libraries']),
-          new QuickItem('Boards', 'pioarduino-ide.showHome', ['/boards']),
-          new QuickItem('Platforms', 'pioarduino-ide.showHome', ['/platforms']),
-          new QuickItem('Devices', 'pioarduino-ide.showHome', ['/device']),
+          new QuickItem('Libraries', 'platformio-ide.showHome', ['/libraries']),
+          new QuickItem('Boards', 'platformio-ide.showHome', ['/boards']),
+          new QuickItem('Platforms', 'platformio-ide.showHome', ['/platforms']),
+          new QuickItem('Devices', 'platformio-ide.showHome', ['/device']),
         ],
       ),
       new QuickItem(
@@ -52,7 +52,7 @@ export default class QuickAccessTreeProvider {
         undefined,
         vscode.TreeItemCollapsibleState.Expanded,
         [
-          new QuickItem('Start Debugging', 'pioarduino-ide.startDebugging'),
+          new QuickItem('Start Debugging', 'platformio-ide.startDebugging'),
           new QuickItem('Toggle Debug Console', 'workbench.debug.action.toggleRepl'),
         ],
       ),
@@ -67,10 +67,10 @@ export default class QuickAccessTreeProvider {
             'workbench.extensions.action.showExtensionsWithIds',
             [['alexnesnes.teleplot']],
           ),
-          new QuickItem('pioarduino Core CLI', 'pioarduino-ide.openPIOCoreCLI'),
+          new QuickItem('pioarduino Core CLI', 'platformio-ide.openPIOCoreCLI'),
           new QuickItem('Clone Git Project', 'git.clone'),
-          new QuickItem('New Terminal', 'pioarduino-ide.newTerminal'),
-          new QuickItem('Upgrade pioarduino Core', 'pioarduino-ide.upgradeCore'),
+          new QuickItem('New Terminal', 'platformio-ide.newTerminal'),
+          new QuickItem('Upgrade pioarduino Core', 'platformio-ide.upgradeCore'),
         ],
       ),
     ];

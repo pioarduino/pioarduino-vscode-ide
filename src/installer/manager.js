@@ -20,7 +20,7 @@ export default class InstallationManager {
   LOCK_KEY = 'installer-lock';
 
   constructor(disableAutoUpdates = false) {
-    const config = vscode.workspace.getConfiguration('pioarduino-ide');
+    const config = vscode.workspace.getConfiguration('platformio-ide');
     this.stages = [
       new pioNodeHelpers.installer.PlatformIOCoreStage(
         {
