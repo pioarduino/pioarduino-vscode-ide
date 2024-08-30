@@ -7,7 +7,7 @@
  */
 
 import * as misc from './misc';
-import * as pioNodeHelpers from 'platformio-node-helpers';
+import * as pioNodeHelpers from 'pioarduino-node-helpers';
 import * as piodebug from 'platformio-vscode-debug';
 import * as utils from './utils';
 
