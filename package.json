@@ -1,6 +1,6 @@
 {
   "name": "pioarduino-ide",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "publisher": "pioarduino",
   "engines": {
     "vscode": "^1.65.0"
@@ -881,7 +881,7 @@
   },
   "dependencies": {
     "fs-plus": "~3.1.1",
-    "pioarduino-node-helpers": "~11.3.1",
+    "pioarduino-node-helpers": "~11.3.2",
     "platformio-vscode-debug": "~1.4.1"
   },
   "devDependencies": {
