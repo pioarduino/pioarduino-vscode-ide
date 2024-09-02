@@ -6,7 +6,7 @@
  * the root directory of this source tree.
  */
 
-import * as pioNodeHelpers from 'platformio-node-helpers';
+import * as pioNodeHelpers from 'pioarduino-node-helpers';
 
 import PIOHome from '../home';
 import { PIO_CORE_VERSION_SPEC } from '../constants';

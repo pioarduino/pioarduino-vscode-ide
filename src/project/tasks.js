@@ -277,7 +277,7 @@ export default class ProjectTaskManager {
       vscode.StatusBarAlignment.Left,
       STATUS_BAR_PRIORITY_START,
     );
-    this._sbPortSwitcher.name = 'PlatformIO: Port Switcher';
+    this._sbPortSwitcher.name = 'pioarduino: Port Switcher';
     this._sbPortSwitcher.tooltip = 'Set upload/monitor/test port';
     this._sbPortSwitcher.command = 'platformio-ide.setProjectPort';
     this.switchPort(this._customPort);

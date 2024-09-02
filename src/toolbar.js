@@ -24,7 +24,7 @@ class ToolbarButton {
       vscode.StatusBarAlignment.Left,
       STATUS_BAR_PRIORITY_START + options.priority + 1,
     );
-    item.name = this.tooltip || 'PlatformIO: Toolbar Item';
+    item.name = this.tooltip || 'pioarduino: Toolbar Item';
     item.text = this.text;
     item.tooltip = this.tooltip;
     item.command = {

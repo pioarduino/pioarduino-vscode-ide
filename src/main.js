@@ -7,13 +7,12 @@
  */
 
 import * as misc from './misc';
-import * as pioNodeHelpers from 'platformio-node-helpers';
+import * as pioNodeHelpers from 'pioarduino-node-helpers';
 import * as piodebug from 'platformio-vscode-debug';
 import * as utils from './utils';
 
 import InstallationManager from './installer/manager';
 import PIOHome from './home';
-import PIOReleaseNotes from './release-notes';
 import PIOTerminal from './terminal';
 import PIOToolbar from './toolbar';
 import ProjectManager from './project/manager';
@@ -37,12 +36,12 @@ class PlatformIOVSCodeExtension {
     this.context = context;
     this.pioHome = new PIOHome();
     this.pioTerm = new PIOTerminal();
-    this.subscriptions.push(this.pioHome, this.pioTerm, new PIOReleaseNotes());
+    this.subscriptions.push(this.pioHome, this.pioTerm);
     const hasPIOProject = getPIOProjectDirs().length > 0;
 
     // dump global state
     console.info(
-      'PlatformIO IDE Global State',
+      'pioarduino IDE Global State',
       context.globalState.keys().reduce((state, key) => {
         state[key] = context.globalState.get(key);
         return state;
@@ -98,7 +97,7 @@ class PlatformIOVSCodeExtension {
 
     this.startPIOHome();
 
-    misc.maybeRateExtension();
+    // misc.maybeRateExtension();
     misc.warnAboutConflictedExtensions();
     this.subscriptions.push(
       vscode.window.onDidChangeActiveTextEditor((editor) =>
@@ -160,7 +159,7 @@ class PlatformIOVSCodeExtension {
     const im = new InstallationManager(disableAutoUpdates);
     if (im.locked()) {
       vscode.window.showInformationMessage(
-        'PlatformIO IDE installation has been suspended, because PlatformIO ' +
+        'pioarduino IDE installation has been suspended, because pioarduino ' +
           'IDE Installer is already started in another window.',
       );
       return;
@@ -168,11 +167,11 @@ class PlatformIOVSCodeExtension {
     const doInstall = await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Window,
-        title: 'PlatformIO',
+        title: 'pioarduino',
       },
       async (progress) => {
         progress.report({
-          message: 'Initializing PlatformIO Core...',
+          message: 'Initializing pioarduino Core...',
         });
         try {
           return !(await im.check());
@@ -188,17 +187,17 @@ class PlatformIOVSCodeExtension {
     return await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: 'PlatformIO Installer',
+        title: 'pioarduino Installer',
       },
       async (progress) => {
         progress.report({
-          message: 'Installing PlatformIO IDE...',
+          message: 'Installing pioarduino IDE...',
         });
         const outputChannel = vscode.window.createOutputChannel(
-          'PlatformIO Installation',
+          'pioarduino Installation',
         );
         outputChannel.show();
-        outputChannel.appendLine('Installing PlatformIO IDE...');
+        outputChannel.appendLine('Installing pioarduino IDE...');
         outputChannel.appendLine(
           'It may take a few minutes depending on your connection speed',
         );
@@ -213,18 +212,18 @@ class PlatformIOVSCodeExtension {
         try {
           im.lock();
           await im.install(progress);
-          outputChannel.appendLine('PlatformIO IDE installed successfully.\n');
+          outputChannel.appendLine('pioarduino IDE installed successfully.\n');
           outputChannel.appendLine('Please restart VSCode.');
           const action = 'Reload Now';
           const selected = await vscode.window.showInformationMessage(
-            'PlatformIO IDE has been successfully installed! Please reload window',
+            'pioarduino IDE has been successfully installed! Please reload window',
             action,
           );
           if (selected === action) {
             vscode.commands.executeCommand('workbench.action.reloadWindow');
           }
         } catch (err) {
-          outputChannel.appendLine('Failed to install PlatformIO IDE.');
+          outputChannel.appendLine('Failed to install pioarduino IDE.');
           utils.notifyError('Installation Manager', err);
         } finally {
           im.unlock();

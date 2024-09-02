@@ -1,5 +1,5 @@
 {
-    "name": "PlatformIO Debugger Memory View",
+    "name": "pioarduino Debugger Memory View",
     "scopeName": "source.platformio-debug-memoryview",
     "patterns": [
         {

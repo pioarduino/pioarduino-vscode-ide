@@ -67,11 +67,10 @@ export default class QuickAccessTreeProvider {
             'workbench.extensions.action.showExtensionsWithIds',
             [['alexnesnes.teleplot']],
           ),
-          new QuickItem('PlatformIO Core CLI', 'platformio-ide.openPIOCoreCLI'),
+          new QuickItem('pioarduino Core CLI', 'platformio-ide.openPIOCoreCLI'),
           new QuickItem('Clone Git Project', 'git.clone'),
           new QuickItem('New Terminal', 'platformio-ide.newTerminal'),
-          new QuickItem('Upgrade PlatformIO Core', 'platformio-ide.upgradeCore'),
-          new QuickItem('Show Release Notes', 'platformio-ide.showReleaseNotes'),
+          new QuickItem('Upgrade pioarduino Core', 'platformio-ide.upgradeCore'),
         ],
       ),
     ];
