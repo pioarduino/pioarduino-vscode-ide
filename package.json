@@ -1,6 +1,6 @@
 {
   "name": "pioarduino-ide",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "publisher": "pioarduino",
   "engines": {
     "vscode": "^1.65.0"
@@ -578,7 +578,7 @@
     "viewsWelcome": [
       {
         "view": "platformio-ide.projectTasks",
-        "contents": "You have not yet opened a pioarduino project.\nYou can open an existing pioarduino-based project (a folder that contains [platformio.ini](https://bit.ly/vscode-platformio-ini-docs) file).\n[Pick a folder](command:workbench.action.files.openFolder)\nYou can create a new PlatformIO Project or explore examples using PlatformIO Home.\n[Create New Project](command:platformio-ide.showHome)"
+        "contents": "You have not yet opened a pioarduino project.\nYou can open an existing pioarduino-based project (a folder that contains [platformio.ini](https://bit.ly/vscode-platformio-ini-docs) file).\n[Pick a folder](command:workbench.action.files.openFolder)\nYou can create a new pioarduino Project or explore examples using pioarduino Home.\n[Create New Project](command:platformio-ide.showHome)"
       },
       {
         "view": "platformio-ide.quickAccess",
