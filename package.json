@@ -1,6 +1,7 @@
 {
   "name": "pioarduino-ide",
-  "version": "1.0.3",
+  "version": "1.0.4",
+  "icon": "assets/images/pioarduino-128x128.png",
   "publisher": "pioarduino",
   "engines": {
     "vscode": "^1.65.0"
@@ -538,7 +539,7 @@
         {
           "id": "platformio",
           "title": "pioarduino",
-          "icon": "assets/icons/platformio-activity-icon.svg"
+          "icon": "assets/icons/pioarduino-activity-icon.svg"
         }
       ]
     },
@@ -881,7 +882,7 @@
   },
   "dependencies": {
     "fs-plus": "~3.1.1",
-    "pioarduino-node-helpers": "~11.3.2",
+    "pioarduino-node-helpers": "~11.3.3",
     "platformio-vscode-debug": "~1.4.1"
   },
   "devDependencies": {

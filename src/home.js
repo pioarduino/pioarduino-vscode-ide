@@ -85,7 +85,7 @@ export default class PIOHome {
         extension.context.extensionPath,
         'assets',
         'images',
-        'platformio-mini-logo.svg',
+        'pioarduino-mini-logo.svg',
       ),
     );
     panel.webview.html = this.getLoadingContent();
