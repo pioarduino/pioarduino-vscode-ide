@@ -1,6 +1,7 @@
 {
   "name": "pioarduino-ide",
   "version": "1.0.2",
+  "icon": "assets/images/pioarduino-128x128.png",
   "publisher": "pioarduino",
   "engines": {
     "vscode": "^1.65.0"
