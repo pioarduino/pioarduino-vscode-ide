@@ -1,6 +1,6 @@
 {
   "name": "pioarduino-ide",
-  "version": "1.0.2",
+  "version": "1.0.5",
   "icon": "assets/images/pioarduino-128x128.png",
   "publisher": "pioarduino",
   "engines": {
@@ -19,10 +19,13 @@
   "keywords": [
     "embedded",
     "microcontroller",
+    "espressif",
     "xtensa",
     "risc-v",
     "espidf",
-    "arduino"
+    "arduino",
+    "pioarduino",
+    "platformio"
   ],
   "main": "./dist/extension",
   "homepage": "https://github.com/pioarduino",
@@ -37,15 +40,7 @@
     "url": "https://github.com/pioarduino/pioarduino-vscode-ide.git"
   },
   "activationEvents": [
-    "workspaceContains:**/platformio.ini",
-    "onView:platformio-ide.quickAccess",
-    "onView:platformio-ide.projectTasks",
-    "onView:platformio-debug.peripherals",
-    "onView:platformio-debug.registers",
-    "onView:platformio-debug.memory",
-    "onView:platformio-debug.disassembly",
-    "onCommand:platformio-ide.showHome",
-    "onCommand:platformio-ide.openPIOCoreCLI"
+    "workspaceContains:platformio.ini"
   ],
   "contributes": {
     "languages": [
@@ -539,7 +534,7 @@
         {
           "id": "platformio",
           "title": "pioarduino",
-          "icon": "assets/icons/platformio-activity-icon.svg"
+          "icon": "assets/icons/pioarduino-activity-icon.svg"
         }
       ]
     },
@@ -579,7 +574,7 @@
     "viewsWelcome": [
       {
         "view": "platformio-ide.projectTasks",
-        "contents": "You have not yet opened a pioarduino project.\nYou can open an existing pioarduino-based project (a folder that contains [platformio.ini](https://bit.ly/vscode-platformio-ini-docs) file).\n[Pick a folder](command:workbench.action.files.openFolder)\nYou can create a new PlatformIO Project or explore examples using PlatformIO Home.\n[Create New Project](command:platformio-ide.showHome)"
+        "contents": "You have not yet opened a pioarduino project.\nYou can open an existing pioarduino-based project (a folder that contains [platformio.ini](https://bit.ly/vscode-platformio-ini-docs) file).\n[Pick a folder](command:workbench.action.files.openFolder)\nYou can create a new pioarduino Project or explore examples using pioarduino Home.\n[Create New Project](command:platformio-ide.showHome)"
       },
       {
         "view": "platformio-ide.quickAccess",
@@ -882,7 +877,7 @@
   },
   "dependencies": {
     "fs-plus": "~3.1.1",
-    "pioarduino-node-helpers": "~11.3.2",
+    "pioarduino-node-helpers": "~11.3.3",
     "platformio-vscode-debug": "~1.4.1"
   },
   "devDependencies": {
