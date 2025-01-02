@@ -22,7 +22,7 @@ export default class InstallationManager {
   constructor(disableAutoUpdates = false) {
     const config = vscode.workspace.getConfiguration('platformio-ide');
     this.stages = [
-      new pioNodeHelpers.installer.PlatformIOCoreStage(
+      new pioNodeHelpers.installer.pioarduinoCoreStage(
         {
           getValue: (key) => extension.context.globalState.get(key),
           setValue: (key, value) => extension.context.globalState.update(key, value),
