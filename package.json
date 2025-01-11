@@ -890,19 +890,19 @@
   },
   "dependencies": {
     "fs-plus": "~3.1.1",
-    "platformio-node-helpers": "~11.2.0",
+    "platformio-node-helpers": "~11.3.0",
     "platformio-vscode-debug": "~1.4.1"
   },
   "devDependencies": {
     "@types/node": "~14",
     "@types/vscode": "~1.65.0",
-    "@vscode/vsce": "~2.23.0",
-    "eslint": "~8.56.0",
-    "eslint-import-resolver-webpack": "~0.13.8",
-    "eslint-plugin-import": "~2.29.1",
-    "prettier": "~3.2.4",
-    "webpack": "~5.90.0",
-    "webpack-cli": "~5.1.4"
+    "@vscode/vsce": "~3.2.1",
+    "eslint": "^8",
+    "eslint-import-resolver-webpack": "~0.13.10",
+    "eslint-plugin-import": "~2.31.0",
+    "prettier": "~3.4.2",
+    "webpack": "~5.97.1",
+    "webpack-cli": "~6.0.1"
   },
   "extensionDependencies": [
     "ms-vscode.cpptools"
