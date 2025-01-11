@@ -1,5 +1,9 @@
 # Release Notes
 
+## 3.3.4 (2025-01-11)
+
+* Technical release addressing the [Visual Studio Marketplace issue #1114](https://github.com/microsoft/vsmarketplace/issues/1114)
+
 ## 3.3.3 (2024-01-26)
 
 * Implemented automatic upgrading of outdated portable Python 3.9 distributions to the latest version, Python 3.11, enhancing the development environment with the latest features and improvements
