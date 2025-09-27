@@ -1,6 +1,6 @@
 {
   "name": "pioarduino-ide",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "icon": "assets/images/pioarduino-128x128.png",
   "publisher": "pioarduino",
   "engines": {
