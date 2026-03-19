@@ -6,7 +6,7 @@
  * the root directory of this source tree.
  */
 
-import * as pioNodeHelpers from 'platformio-node-helpers';
+import * as pioNodeHelpers from 'pioarduino-node-helpers';
 
 import { disposeSubscriptions, notifyError } from './utils';
 import { getPIOProjectDirs, updateProjectItemState } from './project/helpers';
@@ -85,7 +85,7 @@ export default class PIOHome {
         extension.context.extensionPath,
         'assets',
         'images',
-        'platformio-mini-logo.svg',
+        'pioarduino-mini-logo.svg',
       ),
     );
     panel.webview.html = this.getLoadingContent();

@@ -16,11 +16,11 @@ export default class PythonPrompt {
 
   async prompt() {
     const selectedItem = await vscode.window.showInformationMessage(
-      'PlatformIO: Can not find working Python 3.6+ Interpreter. Please install the latest Python 3 and restart VSCode',
+      'pioarduino: Can not find working Python 3.6+ Interpreter. Please install the latest Python 3 and restart VSCode',
       { title: 'Install Python', isCloseAffordance: false },
       { title: 'I have Python', isCloseAffordance: false },
       { title: 'Try again', isCloseAffordance: false },
-      { title: 'Abort PlatformIO IDE Installation', isCloseAffordance: true },
+      { title: 'Abort pioarduino IDE Installation', isCloseAffordance: true },
     );
 
     let result = { status: this.STATUS_TRY_AGAIN };
@@ -48,7 +48,7 @@ export default class PythonPrompt {
           };
         }
         break;
-      case 'Abort PlatformIO IDE Installation':
+      case 'Abort pioarduino IDE Installation':
         result = { status: this.STATUS_ABORT };
         break;
     }

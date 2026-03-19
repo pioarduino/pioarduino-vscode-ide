@@ -19,15 +19,24 @@ export default class PIOTerminal {
       envClone.PATH = process.env.PLATFORMIO_PATH;
       envClone.Path = process.env.PLATFORMIO_PATH;
     }
-    return vscode.window.createTerminal({
-      name: 'PlatformIO CLI',
+    const terminal = vscode.window.createTerminal({
+      name: 'pioarduino CLI',
       env: envClone,
     });
+    // Set Codepage to UTF-8, if Windows is used
+    if (process.platform === 'win32') {
+      terminal.sendText('chcp 65001');
+    }
+    return terminal;
   }
 
   sendText(text) {
     if (!this._instance || this._instance.exitStatus !== undefined) {
       this._instance = this.new();
+      // Set Codepage to UTF-8, if Windows is used
+      if (process.platform === 'win32') {
+        this._instance.sendText('chcp 65001');
+      }
     }
     this._instance.sendText(text);
     this._instance.show();

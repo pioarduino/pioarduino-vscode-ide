@@ -1,5 +1,5 @@
 {
-    "name": "PlatformIO Debugger Disassembly",
+    "name": "pioarduino Debugger Disassembly",
     "scopeName": "source.platformio-debug-disassembly",
     "patterns": [
         {

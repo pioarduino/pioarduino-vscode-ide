@@ -6,7 +6,7 @@
  * the root directory of this source tree.
  */
 
-import * as pioNodeHelpers from 'platformio-node-helpers';
+// import * as pioNodeHelpers from 'pioarduino-node-helpers';  // Lazy load!
 
 import os from 'os';
 import vscode from 'vscode';
@@ -23,7 +23,7 @@ export async function notifyError(title, err) {
   Leave a comment...
 
   BEFORE SUBMITTING, PLEASE SEARCH FOR DUPLICATES IN
-  - https://github.com/platformio/platformio-vscode-ide/issues?q=is%3Aissue+
+  - https://github.com/pioarduino/pioarduino-vscode-ide/issues?q=is%3Aissue+
 
   # Configuration
 
@@ -36,6 +36,7 @@ export async function notifyError(title, err) {
   ${description}
   \`\`\`
   `;
+  const pioNodeHelpers = require('pioarduino-node-helpers');
   const reportUrl = pioNodeHelpers.misc.getErrorReportUrl(title, ghbody);
 
   let action = 'Report a problem';
@@ -54,7 +55,7 @@ export async function notifyError(title, err) {
 }
 
 export function getIDEManifest() {
-  return vscode.extensions.getExtension('platformio.platformio-ide').packageJSON;
+  return vscode.extensions.getExtension('pioarduino.pioarduino-ide').packageJSON;
 }
 
 export function getIDEVersion() {
@@ -62,6 +63,7 @@ export function getIDEVersion() {
 }
 
 export async function listCoreSerialPorts() {
+  const pioNodeHelpers = require('pioarduino-node-helpers');
   const script = `
 import json
 from platformio.public import list_serial_ports

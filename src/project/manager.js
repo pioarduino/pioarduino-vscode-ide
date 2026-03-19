@@ -6,10 +6,15 @@
  * the root directory of this source tree.
  */
 
-import * as pioNodeHelpers from 'platformio-node-helpers';
+import * as pioNodeHelpers from 'pioarduino-node-helpers';
 import * as projectHelpers from './helpers';
-
 import { disposeSubscriptions, notifyError } from '../utils';
+import {
+  ensureClangdArgs,
+  fixupCompileCommands,
+  getActiveBackend,
+  notifyRescanBackend,
+} from '../intellisense';
 import { ProjectConfigLanguageProvider } from './config';
 import ProjectTaskManager from './tasks';
 import ProjectTestManager from './tests';
@@ -25,13 +30,15 @@ export default class ProjectManager {
     this._taskManager = undefined;
     this._sbEnvSwitcher = undefined;
     this._logOutputChannel = vscode.window.createOutputChannel(
-      'PlatformIO: Project Configuration',
+      'pioarduino: Project Configuration',
     );
     this._configProvider = new ProjectConfigLanguageProvider();
     this._configChangedTimeout = undefined;
 
+    const activeBackend = getActiveBackend();
     this._pool = new pioNodeHelpers.project.ProjectPool({
-      ide: 'vscode',
+      ide: activeBackend.indexerIde,
+      intelliSenseBackend: activeBackend,
       api: {
         logOutputChannel: this._logOutputChannel,
         createFileSystemWatcher: vscode.workspace.createFileSystemWatcher,
@@ -41,7 +48,7 @@ export default class ProjectManager {
           vscode.window.withProgress(
             {
               location: { viewId: vscode.ProgressLocation.Notification },
-              title: 'PlatformIO: Configuring project',
+              title: 'pioarduino: Configuring project',
               cancellable: true,
             },
             async (progress, token) =>
@@ -63,7 +70,7 @@ export default class ProjectManager {
               await vscode.window.withProgress(
                 {
                   location: { viewId: vscode.ProgressLocation.Window },
-                  title: 'PlatformIO: Loading tasks...',
+                  title: 'pioarduino: Loading tasks...',
                 },
                 task,
               ),
@@ -83,6 +90,11 @@ export default class ProjectManager {
           );
         },
         onDidNotifyError: notifyError.bind(this),
+        onDidRebuildIndex: async (projectDir) => {
+          await fixupCompileCommands(projectDir);
+          await ensureClangdArgs(projectDir);
+          await notifyRescanBackend();
+        },
       },
       settings: {
         autoPreloadEnvTasks: extension.getConfiguration('autoPreloadEnvTasks'),
@@ -227,6 +239,7 @@ export default class ProjectManager {
     ) {
       disposeSubscriptions(this.internalSubscriptions);
       await this._pool.switch(projectDir);
+      await ensureClangdArgs(projectDir);
       this._taskManager = new ProjectTaskManager(projectDir, observer);
       this.internalSubscriptions.push(
         this._taskManager,
@@ -254,8 +267,8 @@ export default class ProjectManager {
       vscode.StatusBarAlignment.Left,
       STATUS_BAR_PRIORITY_START,
     );
-    this._sbEnvSwitcher.name = 'PlatformIO: Project Environment Switcher';
-    this._sbEnvSwitcher.tooltip = 'Switch PlatformIO Project Environment';
+    this._sbEnvSwitcher.name = 'pioarduino: Project Environment Switcher';
+    this._sbEnvSwitcher.tooltip = 'Switch pioarduino Project Environment';
     this._sbEnvSwitcher.command = 'platformio-ide.pickProjectEnv';
     this._sbEnvSwitcher.text = '$(root-folder) Loading...';
     this._sbEnvSwitcher.show();
