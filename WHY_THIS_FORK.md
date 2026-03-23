@@ -1,6 +1,6 @@
 # pioarduino-vscode-ide vs. PlatformIO IDE: Understanding the Added Value
 
-If you are considering switching your development environment, the most important thing to know upfront is this: **pioarduino-vscode-ide can do everything the original PlatformIO IDE does.** Becuse it is a direct fork of the original extension, it shares the exact same underlying engine and interface. If you develop for STM32, Atmel AVR, RP2040, or any other non-Espressif architecture, your workflow, compilation, and uploading will remain 100% identical and fully supported. 
+If you are considering switching your development environment, the most important thing to know upfront is this: **pioarduino-vscode-ide can do everything the original PlatformIO IDE does.** Because it is a direct fork of the original extension, it shares the exact same underlying engine and interface. If you develop for STM32, Atmel AVR, RP2040, or any other non-Espressif architecture, your workflow, compilation, and uploading will remain 100% identical and fully supported. 
 
 Here is a breakdown of where the two diverge and the specific added value the `pioarduino` fork brings to the table.
 
@@ -14,7 +14,7 @@ platform = https://github.com/pioarduino/platform-espressif32/releases/download/
 
 This workaround functions perfectly well, as documented [here](https://github.com/pioarduino/platform-espressif32). It gives you access to modern ESP32 chips (like the C6, H2, and P4), the latest ESP-IDF 5.x framework, and modern GCC compilers, all while staying within the standard PlatformIO environment. 
 
-## Why use the pioarduino-ide fork instead?
+## Why use the pioarduino-vscode-ide fork instead?
 
 If the URL workaround exists, why bother installing the `pioarduino` IDE extension? The added value comes down to convenience, future-proofing, and specialized tooling:
 
