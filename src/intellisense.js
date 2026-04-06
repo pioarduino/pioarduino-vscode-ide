@@ -114,6 +114,9 @@ export function isBackendExtensionInstalled() {
 
 export async function applyBackendConfigDefaults() {
   const backend = getActiveBackend();
+  if (!isBackendExtensionInstalled()) {
+    return;
+  }
   const otherBackendValues = collectOtherBackendValues(backend.id);
   const config = vscode.workspace.getConfiguration();
 
@@ -152,7 +155,11 @@ function collectOtherBackendValues(activeId) {
  *     so clangd can match them (it uses directory proximity heuristics).
  */
 export async function fixupCompileCommands(projectDir) {
-  if (getActiveBackendId() !== 'clangd' || !projectDir) {
+  if (
+    getActiveBackendId() !== 'clangd' ||
+    !projectDir ||
+    !isBackendExtensionInstalled()
+  ) {
     return;
   }
   const ccPath = path.join(projectDir, 'compile_commands.json');
@@ -324,7 +331,11 @@ export async function fixupCompileCommands(projectDir) {
 }
 
 export async function ensureClangdArgs(projectDir) {
-  if (getActiveBackendId() !== 'clangd' || !projectDir) {
+  if (
+    getActiveBackendId() !== 'clangd' ||
+    !projectDir ||
+    !isBackendExtensionInstalled()
+  ) {
     return;
   }
   const config = vscode.workspace.getConfiguration('clangd');
@@ -368,9 +379,40 @@ function upsertArg(args, prefix, value) {
   return true;
 }
 
+/**
+ * Ensure .vscode/launch.json exists for debugging.
+ *
+ * When the cpptools backend is active, `pio project init --ide vscode` creates
+ * this file automatically. The clangd backend uses `pio run --target compiledb`
+ * instead, which only produces compile_commands.json. Without launch.json the
+ * debugger has no configuration to start from, so we run
+ * `pio project init --ide vscode` to generate the full debug configuration
+ * (executable, toolchainBinDir, svdPath, preLaunchTask, etc.).
+ */
+export async function ensureLaunchJson(projectDir) {
+  if (!projectDir) {
+    return;
+  }
+  const launchPath = path.join(projectDir, '.vscode', 'launch.json');
+  try {
+    await fs.access(launchPath);
+    return; // already exists
+  } catch {
+    // file does not exist – generate it via CLI
+  }
+  try {
+    await pioNodeHelpers.core.getPIOCommandOutput(
+      ['project', 'init', '--ide', 'vscode'],
+      { projectDir },
+    );
+  } catch (err) {
+    console.warn(`Failed to generate launch.json: ${err.message}`);
+  }
+}
+
 export async function notifyRescanBackend() {
   const backend = getActiveBackend();
-  if (!backend.rescanCommand) {
+  if (!backend.rescanCommand || !isBackendExtensionInstalled()) {
     return;
   }
   try {
