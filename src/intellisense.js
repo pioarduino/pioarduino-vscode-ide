@@ -168,13 +168,30 @@ export async function ensureCompileCommands(projectDir) {
   } catch {
     // file does not exist – generate it
   }
-  try {
-    await pioNodeHelpers.core.getPIOCommandOutput(['run', '--target', 'compiledb'], {
-      projectDir,
-    });
-  } catch (err) {
-    console.warn(`Failed to generate compile_commands.json: ${err.message}`);
-  }
+  // Run in background with a progress notification so the UI stays responsive.
+  vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: 'PlatformIO: Generating compile_commands.json…',
+      cancellable: false,
+    },
+    async () => {
+      try {
+        await pioNodeHelpers.core.getPIOCommandOutput(
+          ['run', '--target', 'compiledb'],
+          { projectDir },
+        );
+        // Post-process the freshly generated file (same steps as onDidRebuildIndex).
+        await fixupCompileCommands(projectDir);
+        await ensureClangdConfig(projectDir);
+        await notifyRescanBackend();
+      } catch (err) {
+        vscode.window.showErrorMessage(
+          `Failed to generate compile_commands.json: ${err.message}`,
+        );
+      }
+    },
+  );
 }
 
 /**
