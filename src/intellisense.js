@@ -147,6 +147,37 @@ function collectOtherBackendValues(activeId) {
 }
 
 /**
+ * Ensure compile_commands.json exists for clangd.
+ *
+ * When a project is opened with the clangd backend and no
+ * compile_commands.json is present yet (e.g. first open, or after a clean),
+ * we generate it by running `pio run --target compiledb`.
+ */
+export async function ensureCompileCommands(projectDir) {
+  if (
+    getActiveBackendId() !== 'clangd' ||
+    !projectDir ||
+    !isBackendExtensionInstalled()
+  ) {
+    return;
+  }
+  const ccPath = path.join(projectDir, 'compile_commands.json');
+  try {
+    await fs.access(ccPath);
+    return; // already exists
+  } catch {
+    // file does not exist – generate it
+  }
+  try {
+    await pioNodeHelpers.core.getPIOCommandOutput(['run', '--target', 'compiledb'], {
+      projectDir,
+    });
+  } catch (err) {
+    console.warn(`Failed to generate compile_commands.json: ${err.message}`);
+  }
+}
+
+/**
  * Post-process compile_commands.json so clangd works correctly:
  *  1. Resolve bare compiler names to absolute paths so --query-driver matches.
  *  2. Convert relative -I include paths to absolute so clangd finds headers.
