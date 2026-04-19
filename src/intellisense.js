@@ -37,18 +37,33 @@ function shellTokenize(cmd) {
     const ch = cmd[i];
     if (ch === '\\' && !inSingle && i + 1 < cmd.length) {
       if (IS_WINDOWS) {
-        // On Windows backslashes are path separators – only treat \" as an
-        // escape (literal double-quote) so that values like
-        //   -DBOARD=\"Espressif ESP32\"  are kept as a single token.
-        // All other \x sequences keep the backslash (preserving paths).
-        if (cmd[i + 1] === '"') {
-          current += '"';
+        // LLVM/MSVC backslash-quote rule: count consecutive backslashes
+        // preceding a double-quote.  2n backslashes + " → n backslashes,
+        // toggle quote mode.  2n+1 backslashes + " → n backslashes + literal
+        // '"' (no toggle).  Backslashes NOT followed by a double-quote are
+        // kept literally (preserving Windows paths like C:\SDK\include).
+        let numSlashes = 0;
+        while (i < cmd.length && cmd[i] === '\\') {
+          numSlashes++;
           i++;
-          hasContent = true;
-        } else {
-          current += ch;
-          hasContent = true;
         }
+        if (i < cmd.length && cmd[i] === '"') {
+          // Backslashes followed by a double-quote
+          const literalSlashes = Math.floor(numSlashes / 2);
+          current += '\\'.repeat(literalSlashes);
+          if (numSlashes % 2 === 1) {
+            // Odd run: last backslash escapes the quote → literal '"'
+            current += '"';
+          } else {
+            // Even run: quote is unescaped → toggle quote mode
+            inDouble = !inDouble;
+          }
+        } else {
+          // Backslashes not followed by a quote → all literal
+          current += '\\'.repeat(numSlashes);
+          i--; // re-examine the non-quote character on next iteration
+        }
+        hasContent = true;
       } else {
         current += cmd[++i];
         hasContent = true;
