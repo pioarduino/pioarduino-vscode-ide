@@ -274,9 +274,10 @@ export async function fixupCompileCommands(projectDir) {
         }
         const candidate = path.join(packagesDir, d, 'bin', bare);
         // On Windows, PIO emits bare names without .exe – try both variants.
-        const candidates = IS_WINDOWS && !bare.endsWith('.exe')
-          ? [candidate + '.exe', candidate]
-          : [candidate];
+        const candidates =
+          IS_WINDOWS && !bare.endsWith('.exe')
+            ? [candidate + '.exe', candidate]
+            : [candidate];
         for (const c of candidates) {
           try {
             await fs.access(c);

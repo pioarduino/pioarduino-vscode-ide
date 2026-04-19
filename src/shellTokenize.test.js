@@ -87,19 +87,13 @@ function assertTokens(label, input, isWindows, expected) {
 
 // ─── Windows (IS_WINDOWS = true) ────────────────────────────────────────────
 
-assertTokens(
-  'WIN: plain Windows path as single token',
+assertTokens('WIN: plain Windows path as single token', 'C:\\path\\to\\inc', true, [
   'C:\\path\\to\\inc',
-  true,
-  ['C:\\path\\to\\inc'],
-);
+]);
 
-assertTokens(
-  'WIN: -I with Windows path',
+assertTokens('WIN: -I with Windows path', '-IC:\\SDK\\include', true, [
   '-IC:\\SDK\\include',
-  true,
-  ['-IC:\\SDK\\include'],
-);
+]);
 
 assertTokens(
   'WIN: multiple args with Windows paths',
@@ -133,12 +127,9 @@ assertTokens(
   ['-DBOARD="Espressif', 'ESP32-S3"'],
 );
 
-assertTokens(
-  'WIN: whole arg double-quoted with spaces',
-  '"-DFOO=bar baz"',
-  true,
-  ['-DFOO=bar baz'],
-);
+assertTokens('WIN: whole arg double-quoted with spaces', '"-DFOO=bar baz"', true, [
+  '-DFOO=bar baz',
+]);
 
 assertTokens(
   'WIN: 2 backslashes + quote → 1 backslash, toggle quote (even rule)',
@@ -170,26 +161,14 @@ assertTokens(
   ['C:\\dir"'],
 );
 
-assertTokens(
-  'WIN: empty double-quoted token',
-  'a "" b',
-  true,
-  ['a', '', 'b'],
-);
+assertTokens('WIN: empty double-quoted token', 'a "" b', true, ['a', '', 'b']);
 
-assertTokens(
-  'WIN: empty single-quoted token',
-  "a '' b",
-  true,
-  ['a', '', 'b'],
-);
+assertTokens('WIN: empty single-quoted token', "a '' b", true, ['a', '', 'b']);
 
-assertTokens(
-  'WIN: backslashes before non-quote are literal',
-  'C:\\a\\b\\c d',
-  true,
-  ['C:\\a\\b\\c', 'd'],
-);
+assertTokens('WIN: backslashes before non-quote are literal', 'C:\\a\\b\\c d', true, [
+  'C:\\a\\b\\c',
+  'd',
+]);
 
 assertTokens(
   'WIN: single backslash at end of input (no char follows)',
@@ -202,40 +181,23 @@ assertTokens(
 
 // ─── POSIX (IS_WINDOWS = false) ─────────────────────────────────────────────
 
-assertTokens(
-  'POSIX: backslash-n escape',
-  'a\\nb',
-  false,
-  ['anb'],
-);
+assertTokens('POSIX: backslash-n escape', 'a\\nb', false, ['anb']);
 
-assertTokens(
-  'POSIX: backslash-backslash produces single backslash',
-  'a\\\\b',
-  false,
-  ['a\\b'],
-);
+assertTokens('POSIX: backslash-backslash produces single backslash', 'a\\\\b', false, [
+  'a\\b',
+]);
 
-assertTokens(
-  'POSIX: backslash-quote produces literal quote',
-  'a\\"b',
-  false,
-  ['a"b'],
-);
+assertTokens('POSIX: backslash-quote produces literal quote', 'a\\"b', false, ['a"b']);
 
-assertTokens(
-  'POSIX: backslash-space keeps space in token',
-  'a\\ b c',
-  false,
-  ['a b', 'c'],
-);
+assertTokens('POSIX: backslash-space keeps space in token', 'a\\ b c', false, [
+  'a b',
+  'c',
+]);
 
-assertTokens(
-  'POSIX: double-quoted string with spaces',
-  '"hello world" foo',
-  false,
-  ['hello world', 'foo'],
-);
+assertTokens('POSIX: double-quoted string with spaces', '"hello world" foo', false, [
+  'hello world',
+  'foo',
+]);
 
 assertTokens(
   'POSIX: single-quoted string preserves backslash literally',
@@ -244,19 +206,9 @@ assertTokens(
   ['a\\b'],
 );
 
-assertTokens(
-  'POSIX: empty double-quoted token',
-  'a "" b',
-  false,
-  ['a', '', 'b'],
-);
+assertTokens('POSIX: empty double-quoted token', 'a "" b', false, ['a', '', 'b']);
 
-assertTokens(
-  'POSIX: empty single-quoted token',
-  "a '' b",
-  false,
-  ['a', '', 'b'],
-);
+assertTokens('POSIX: empty single-quoted token', "a '' b", false, ['a', '', 'b']);
 
 assertTokens(
   'POSIX: mixed quoting styles',
@@ -265,16 +217,15 @@ assertTokens(
   ['gcc', '-DFOO=hello world', '-DBAR=baz qux'],
 );
 
-assertTokens(
-  'POSIX: trailing backslash (no char follows) preserved',
+assertTokens('POSIX: trailing backslash (no char follows) preserved', 'abc\\', false, [
   'abc\\',
-  false,
-  ['abc\\'],
-);
+]);
 
 // ─── Summary ────────────────────────────────────────────────────────────────
 
-process.stdout.write(`\n${passed + failed} tests: ${passed} passed, ${failed} failed\n`);
+process.stdout.write(
+  `\n${passed + failed} tests: ${passed} passed, ${failed} failed\n`,
+);
 if (failed > 0) {
   process.exit(1);
 }
