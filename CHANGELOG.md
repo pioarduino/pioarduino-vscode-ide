@@ -4,6 +4,22 @@ All notable changes to the **pioarduino IDE** VSCode extension are documented in
 
 ---
 
+## [1.3.15] - 2026-04-19
+
+### 🔧 Maintenance
+
+- **Update / Refactor `pioarduino-node-helpers`** to v12.4.7. Python no more needed for pioarduino IDE install and use.
+
+---
+
+## [1.3.14] - 2026-04-18
+
+### 🐛 Bug Fixes
+
+- **clangd: avoid duplicates in `.clangd`** by checking if espressif specific settings are already applied.
+
+---
+
 ## [1.3.13] - 2026-04-17
 
 ### 🐛 Bug Fixes
@@ -64,7 +80,7 @@ All notable changes to the **pioarduino IDE** VSCode extension are documented in
 
 ### 📦 Dependencies
 
-- Update `pioarduino-node-helpers` to  v12.4.4
+- Update `pioarduino-node-helpers` to v12.4.4
 
 ---
 
@@ -97,7 +113,7 @@ All notable changes to the **pioarduino IDE** VSCode extension are documented in
 
 ### 📦 Dependencies
 
-- Update `pioarduino-vscode-debug` to  v1.1.3
+- Update `pioarduino-vscode-debug` to v1.1.3
 
 ---
 
@@ -117,7 +133,7 @@ All notable changes to the **pioarduino IDE** VSCode extension are documented in
 
 ### 📦 Dependencies
 
-- Update `pioarduino-vscode-debug` to  v1.1.2
+- Update `pioarduino-vscode-debug` to v1.1.2
 
 ### 🔧 Maintenance
 
