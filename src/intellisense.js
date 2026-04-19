@@ -26,23 +26,87 @@ function shellTokenize(cmd) {
 const INCLUDE_FLAGS = ['-idirafter', '-isystem', '-iquote', '-I'];
 
 /**
+ * Flags whose argument is a *file* path, always in separated form only
+ * (GCC/Clang never accept a joined form like -include<file>).
+ */
+const INCLUDE_FILE_FLAGS = ['-include-pch', '-include', '-imacros'];
+
+/**
  * Convert relative include-path arguments to absolute.
- * Handles both joined (-Ipath) and separated (-I path) forms for every flag
- * in INCLUDE_FLAGS.
+ *
+ * For directory-style flags (-I, -isystem, -iquote, -idirafter):
+ *   resolve relative to `dir`.
+ *
+ * For file-style flags (-include, -include-pch, -imacros):
+ *   search the full include-path list (both absolute AND relative entries,
+ *   all pre-resolved to absolute) for the file, then fall back to `dir`.
+ *   This mirrors the compiler's own resolution order.
  */
 function absolutizeIncludes(args, dir) {
+  // ── Pass 1: collect every include directory (absolutize relative ones). ──
+  const includeDirs = [];
   for (let i = 1; i < args.length; i++) {
     const a = args[i];
-    // Separated form: flag <path>
-    const separatedMatch = INCLUDE_FLAGS.find((f) => a === f);
-    if (separatedMatch && i + 1 < args.length) {
+
+    // Separated form:  -I <path>
+    const sep = INCLUDE_FLAGS.find((f) => a === f);
+    if (sep && i + 1 < args.length) {
+      const p = args[i + 1];
+      // ★ key change: absolutize relative dirs here, not just absolute ones
+      includeDirs.push(path.isAbsolute(p) ? p : path.join(dir, p));
+      i++;
+      continue;
+    }
+
+    // Joined form:  -I<path>
+    for (const flag of INCLUDE_FLAGS) {
+      if (a.startsWith(flag) && a.length > flag.length) {
+        const p = a.slice(flag.length);
+        includeDirs.push(path.isAbsolute(p) ? p : path.join(dir, p));
+        break;
+      }
+    }
+  }
+
+  // ── Pass 2: absolutize every include argument. ──
+  for (let i = 1; i < args.length; i++) {
+    const a = args[i];
+
+    // Separated directory flag:  -I <path>
+    const sepDirMatch = INCLUDE_FLAGS.find((f) => a === f);
+    if (sepDirMatch && i + 1 < args.length) {
       if (!path.isAbsolute(args[i + 1])) {
         args[i + 1] = path.join(dir, args[i + 1]);
       }
       i++;
       continue;
     }
-    // Joined form: flag<path> (match longest prefix first)
+
+    // Separated file flag:  -include <file>
+    const sepFileMatch = INCLUDE_FILE_FLAGS.find((f) => a === f);
+    if (sepFileMatch && i + 1 < args.length) {
+      const rel = args[i + 1];
+      if (!path.isAbsolute(rel)) {
+        // Walk include dirs in order (same as the compiler would).
+        let resolved = null;
+        for (const d of includeDirs) {
+          const candidate = path.join(d, rel);
+          try {
+            require('fs').accessSync(candidate);
+            resolved = candidate;
+            break;
+          } catch {
+            // not in this dir — keep searching
+          }
+        }
+        // Fallback: resolve relative to compilation dir (should be rare).
+        args[i + 1] = resolved ?? path.join(dir, rel);
+      }
+      i++;
+      continue;
+    }
+
+    // Joined directory flag:  -I<path>
     for (const flag of INCLUDE_FLAGS) {
       if (a.startsWith(flag) && a.length > flag.length) {
         const v = a.slice(flag.length);
@@ -108,17 +172,25 @@ function collectOtherBackendValues(activeId) {
 }
 
 /**
- * Ensure compile_commands.json exists for clangd.
+ * Ensure compile_commands.json will be generated for clangd.
  *
  * When a project is opened with the clangd backend and no
  * compile_commands.json is present yet (e.g. first open, or after a clean),
- * we generate it by running `pio run --target compiledb`.
+ * we trigger a rebuild via the project observer.  The observer's
+ * `rebuildIndex` runs `pio run --target compiledb` which waits for PIO's
+ * full pre-build process (LDF, dependency resolution, etc.) to complete
+ * before writing compile_commands.json.  The `onDidRebuildIndex` callback
+ * then post-processes the file.
+ *
+ * This avoids a race where a separate `pio run` would start in parallel
+ * with the observer's own rebuild.
  */
-export async function ensureCompileCommands(projectDir, activeEnv) {
+export async function ensureCompileCommands(projectDir, observer) {
   if (
     getActiveBackendId() !== 'clangd' ||
     !projectDir ||
-    !isBackendExtensionInstalled()
+    !isBackendExtensionInstalled() ||
+    !observer
   ) {
     return;
   }
@@ -127,36 +199,9 @@ export async function ensureCompileCommands(projectDir, activeEnv) {
     await fs.access(ccPath);
     return; // already exists
   } catch {
-    // file does not exist – generate it
+    // file does not exist – trigger a rebuild via the observer
   }
-  // Run in background with a progress notification so the UI stays responsive.
-  // Intentionally not awaited: project switching should not block on `pio run`.
-  return vscode.window.withProgress(
-    {
-      location: vscode.ProgressLocation.Notification,
-      title: 'PlatformIO: Generating compile_commands.json…',
-      cancellable: false,
-    },
-    async () => {
-      try {
-        const args = ['run', '--target', 'compiledb'];
-        if (activeEnv) {
-          args.push('--environment', activeEnv);
-        }
-        await pioNodeHelpers.core.getPIOCommandOutput(args, { projectDir });
-        // Post-process the freshly generated file (same steps as onDidRebuildIndex).
-        await fixupCompileCommands(projectDir);
-        await ensureClangdConfig(projectDir);
-        await ensureClangdArgs(projectDir);
-        await ensureLaunchJson(projectDir);
-        await notifyRescanBackend();
-      } catch (err) {
-        vscode.window.showErrorMessage(
-          `Failed to generate compile_commands.json: ${err && err.message ? err.message : err}`,
-        );
-      }
-    },
-  );
+  observer.rebuildIndex({ force: true });
 }
 
 /**
