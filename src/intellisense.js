@@ -35,9 +35,24 @@ function shellTokenize(cmd) {
   let inDouble = false;
   for (let i = 0; i < cmd.length; i++) {
     const ch = cmd[i];
-    if (!IS_WINDOWS && ch === '\\' && !inSingle && i + 1 < cmd.length) {
-      current += cmd[++i];
-      hasContent = true;
+    if (ch === '\\' && !inSingle && i + 1 < cmd.length) {
+      if (IS_WINDOWS) {
+        // On Windows backslashes are path separators – only treat \" as an
+        // escape (literal double-quote) so that values like
+        //   -DBOARD=\"Espressif ESP32\"  are kept as a single token.
+        // All other \x sequences keep the backslash (preserving paths).
+        if (cmd[i + 1] === '"') {
+          current += '"';
+          i++;
+          hasContent = true;
+        } else {
+          current += ch;
+          hasContent = true;
+        }
+      } else {
+        current += cmd[++i];
+        hasContent = true;
+      }
     } else if (ch === "'" && !inDouble) {
       inSingle = !inSingle;
       hasContent = true;
