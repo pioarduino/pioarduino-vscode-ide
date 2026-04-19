@@ -2,69 +2,11 @@
  * Unit tests for shellTokenize.
  *
  * Run with:  node src/shellTokenize.test.js
- *
- * The function is duplicated here with an `isWindows` parameter so the tests
- * can exercise both platform branches without patching module-level constants.
  */
 
 'use strict';
 
-// --- shellTokenize (parameterized copy) ---
-
-function shellTokenize(cmd, isWindows) {
-  const tokens = [];
-  let current = '';
-  let hasContent = false;
-  let inSingle = false;
-  let inDouble = false;
-  for (let i = 0; i < cmd.length; i++) {
-    const ch = cmd[i];
-    if (ch === '\\' && !inSingle && i + 1 < cmd.length) {
-      if (isWindows) {
-        let numSlashes = 0;
-        while (i < cmd.length && cmd[i] === '\\') {
-          numSlashes++;
-          i++;
-        }
-        if (i < cmd.length && cmd[i] === '"') {
-          const literalSlashes = Math.floor(numSlashes / 2);
-          current += '\\'.repeat(literalSlashes);
-          if (numSlashes % 2 === 1) {
-            current += '"';
-          } else {
-            inDouble = !inDouble;
-          }
-        } else {
-          current += '\\'.repeat(numSlashes);
-          i--;
-        }
-        hasContent = true;
-      } else {
-        current += cmd[++i];
-        hasContent = true;
-      }
-    } else if (ch === "'" && !inDouble) {
-      inSingle = !inSingle;
-      hasContent = true;
-    } else if (ch === '"' && !inSingle) {
-      inDouble = !inDouble;
-      hasContent = true;
-    } else if (ch === ' ' && !inSingle && !inDouble) {
-      if (current.length > 0 || hasContent) {
-        tokens.push(current);
-        current = '';
-        hasContent = false;
-      }
-    } else {
-      current += ch;
-      hasContent = true;
-    }
-  }
-  if (current.length > 0 || hasContent) {
-    tokens.push(current);
-  }
-  return tokens;
-}
+const shellTokenize = require('./shellTokenize');
 
 // --- tiny test harness ---
 
@@ -177,6 +119,21 @@ assertTokens(
   // The guard `i + 1 < cmd.length` fails for trailing \, so it falls through
   // to the default branch and is appended literally.
   ['abc\\'],
+);
+
+// Intentional deviation from full MSVC semantics: consecutive double-quotes
+// ("") inside a quoted region are NOT collapsed into a literal '"'.  PIO's
+// compile_commands.json uses backslash-escaping for quotes, never "", so
+// this rule is unnecessary.  The current behavior treats each " as toggling
+// quote mode, producing an empty token.
+assertTokens(
+  'WIN: consecutive "" inside quoted region (intentional deviation from MSVC ""→" rule)',
+  '"a""b"',
+  true,
+  // Full MSVC would produce ['a"b'], but our tokenizer toggles on each " →
+  // 'a' (close quote) + '' (open+close empty) + 'b' (open quote) all
+  // concatenated into the same token because no space separates them.
+  ['ab'],
 );
 
 // ─── POSIX (IS_WINDOWS = false) ─────────────────────────────────────────────

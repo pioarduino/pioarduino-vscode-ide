@@ -15,80 +15,11 @@ import {
 import { extension } from './main';
 import { promises as fs } from 'fs';
 import path from 'path';
+import shellTokenizeImpl from './shellTokenize';
 import vscode from 'vscode';
 
-/**
- * Tokenize a shell command string into an argv array.
- *
- * On POSIX this follows GNU shell rules (backslash escapes, single & double
- * quotes).  On Windows backslashes are NOT treated as escape characters so
- * that paths like C:\SDK\include survive intact – matching the behaviour of
- * LLVM's TokenizeWindowsCommandLine.
- *
- * Empty quoted strings ("" or '') produce an empty-string token.
- */
 function shellTokenize(cmd) {
-  const tokens = [];
-  let current = '';
-  let hasContent = false;
-  let inSingle = false;
-  let inDouble = false;
-  for (let i = 0; i < cmd.length; i++) {
-    const ch = cmd[i];
-    if (ch === '\\' && !inSingle && i + 1 < cmd.length) {
-      if (IS_WINDOWS) {
-        // LLVM/MSVC backslash-quote rule: count consecutive backslashes
-        // preceding a double-quote.  2n backslashes + " → n backslashes,
-        // toggle quote mode.  2n+1 backslashes + " → n backslashes + literal
-        // '"' (no toggle).  Backslashes NOT followed by a double-quote are
-        // kept literally (preserving Windows paths like C:\SDK\include).
-        let numSlashes = 0;
-        while (i < cmd.length && cmd[i] === '\\') {
-          numSlashes++;
-          i++;
-        }
-        if (i < cmd.length && cmd[i] === '"') {
-          // Backslashes followed by a double-quote
-          const literalSlashes = Math.floor(numSlashes / 2);
-          current += '\\'.repeat(literalSlashes);
-          if (numSlashes % 2 === 1) {
-            // Odd run: last backslash escapes the quote → literal '"'
-            current += '"';
-          } else {
-            // Even run: quote is unescaped → toggle quote mode
-            inDouble = !inDouble;
-          }
-        } else {
-          // Backslashes not followed by a quote → all literal
-          current += '\\'.repeat(numSlashes);
-          i--; // re-examine the non-quote character on next iteration
-        }
-        hasContent = true;
-      } else {
-        current += cmd[++i];
-        hasContent = true;
-      }
-    } else if (ch === "'" && !inDouble) {
-      inSingle = !inSingle;
-      hasContent = true;
-    } else if (ch === '"' && !inSingle) {
-      inDouble = !inDouble;
-      hasContent = true;
-    } else if (ch === ' ' && !inSingle && !inDouble) {
-      if (current.length > 0 || hasContent) {
-        tokens.push(current);
-        current = '';
-        hasContent = false;
-      }
-    } else {
-      current += ch;
-      hasContent = true;
-    }
-  }
-  if (current.length > 0 || hasContent) {
-    tokens.push(current);
-  }
-  return tokens;
+  return shellTokenizeImpl(cmd, IS_WINDOWS);
 }
 
 /** Include-path flags that accept a directory argument (longest first). */
