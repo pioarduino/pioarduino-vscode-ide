@@ -42,7 +42,7 @@ const INCLUDE_FILE_FLAGS = ['-include-pch', '-include', '-imacros'];
  *   all pre-resolved to absolute) for the file, then fall back to `dir`.
  *   This mirrors the compiler's own resolution order.
  */
-function absolutizeIncludes(args, dir) {
+async function absolutizeIncludes(args, dir) {
   // ── Pass 1: collect every include directory (absolutize relative ones). ──
   const includeDirs = [];
   for (let i = 1; i < args.length; i++) {
@@ -92,7 +92,7 @@ function absolutizeIncludes(args, dir) {
         for (const d of includeDirs) {
           const candidate = path.join(d, rel);
           try {
-            require('fs').accessSync(candidate);
+            await fs.access(candidate);
             resolved = candidate;
             break;
           } catch {
@@ -320,7 +320,7 @@ export async function fixupCompileCommands(projectDir) {
     }
 
     // 2. Convert relative include paths to absolute
-    absolutizeIncludes(args, dir);
+    await absolutizeIncludes(args, dir);
 
     // Write back as arguments array (preferred by clangd, avoids quoting issues)
     entry.arguments = args;
