@@ -105,7 +105,12 @@ assertTokens(
 
 assertTokens('WIN: empty double-quoted token', 'a "" b', true, ['a', '', 'b']);
 
-assertTokens('WIN: empty single-quoted token', "a '' b", true, ['a', '', 'b']);
+assertTokens(
+  'WIN: single quotes are literal (not quoting characters)',
+  "a 'hello world' b",
+  true,
+  ['a', "'hello", "world'", 'b'],
+);
 
 assertTokens('WIN: backslashes before non-quote are literal', 'C:\\a\\b\\c d', true, [
   'C:\\a\\b\\c',
@@ -176,6 +181,34 @@ assertTokens(
 
 assertTokens('POSIX: trailing backslash (no char follows) preserved', 'abc\\', false, [
   'abc\\',
+]);
+
+// ─── Whitespace delimiters (tabs, \r) ───────────────────────────────────────
+
+assertTokens('WIN: tab as delimiter', 'a\tb\tc', true, ['a', 'b', 'c']);
+
+assertTokens('POSIX: tab as delimiter', 'a\tb\tc', false, ['a', 'b', 'c']);
+
+assertTokens(
+  'WIN: \\r\\n line ending does not leak \\r into token',
+  'gcc -c file.c\r\n',
+  true,
+  ['gcc', '-c', 'file.c'],
+);
+
+assertTokens(
+  'POSIX: \\r\\n line ending does not leak \\r into token',
+  'gcc -c file.c\r\n',
+  false,
+  ['gcc', '-c', 'file.c'],
+);
+
+assertTokens('WIN: tabs inside double-quoted string are literal', '"a\tb"', true, [
+  'a\tb',
+]);
+
+assertTokens('POSIX: tabs inside double-quoted string are literal', '"a\tb"', false, [
+  'a\tb',
 ]);
 
 // ─── Summary ────────────────────────────────────────────────────────────────

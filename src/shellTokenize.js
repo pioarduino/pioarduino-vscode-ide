@@ -57,13 +57,18 @@ function shellTokenize(cmd, isWindows) {
         current += cmd[++i];
         hasContent = true;
       }
-    } else if (ch === "'" && !inDouble) {
+    } else if (ch === "'" && !inDouble && !isWindows) {
+      // Single quotes toggle quoting on POSIX only; on Windows they are literal.
       inSingle = !inSingle;
       hasContent = true;
     } else if (ch === '"' && !inSingle) {
       inDouble = !inDouble;
       hasContent = true;
-    } else if (ch === ' ' && !inSingle && !inDouble) {
+    } else if (
+      (ch === ' ' || ch === '\t' || ch === '\r' || ch === '\n') &&
+      !inSingle &&
+      !inDouble
+    ) {
       if (current.length > 0 || hasContent) {
         tokens.push(current);
         current = '';
