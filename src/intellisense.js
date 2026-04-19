@@ -258,12 +258,18 @@ export async function fixupCompileCommands(projectDir) {
           continue;
         }
         const candidate = path.join(packagesDir, d, 'bin', bare);
-        try {
-          await fs.access(candidate);
-          resolveCache.set(bare, candidate);
-          return candidate;
-        } catch {
-          // not here
+        // On Windows, PIO emits bare names without .exe – try both variants.
+        const candidates = IS_WINDOWS && !bare.endsWith('.exe')
+          ? [candidate + '.exe', candidate]
+          : [candidate];
+        for (const c of candidates) {
+          try {
+            await fs.access(c);
+            resolveCache.set(bare, c);
+            return c;
+          } catch {
+            // not here
+          }
         }
       }
     } catch {
