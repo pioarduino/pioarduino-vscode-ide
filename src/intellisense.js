@@ -194,7 +194,8 @@ export async function ensureCompileCommands(projectDir, observer, envDir) {
   ) {
     return;
   }
-  // Check the env-specific build dir first, fall back to project root
+  // When an env-specific build dir is known, trust only that database; the
+  // project-root copy may belong to a different environment.
   const candidates = envDir
     ? [path.join(envDir, 'compile_commands.json')]
     : [path.join(projectDir, 'compile_commands.json')];
