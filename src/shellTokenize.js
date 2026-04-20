@@ -54,6 +54,7 @@ function shellTokenize(cmd, isWindows) {
         }
         hasContent = true;
       } else {
+<<<<<<< mv_compile_json
         const next = cmd[i + 1];
         if (inDouble && next !== '$' && next !== '`' && next !== '"' && next !== '\\' && next !== '\n') {
           current += '\\' + next;
@@ -61,6 +62,9 @@ function shellTokenize(cmd, isWindows) {
           current += next;
         }
         i++;
+=======
+        current += cmd[++i];
+>>>>>>> pioarduino
         hasContent = true;
       }
     } else if (ch === "'" && !inDouble && !isWindows) {
