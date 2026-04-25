@@ -404,6 +404,30 @@ async function injectArduinoCoreIncludes(entries, projectDir, packagesDir) {
     injectFlags.push(`-I${toFwd(v)}`);
   }
 
+  // Inject the top-level per-chip include directory from
+  // framework-arduinoespressif32-libs (e.g. <libs>/esp32s3/include/), which
+  // contains pre-compiled Arduino library headers like WiFiClient.h and
+  // BLEDevice.h.  The deeper memory-type-specific include path
+  // (<libs>/<chip>/<memory_type>/include) is handled separately by
+  // injectLibsSdkconfigInclude.
+  //
+  // The chip family is derived from CONFIG_IDF_TARGET_* defines instead of
+  // the variant directory name — board-specific variant folders (e.g.
+  // `XIAO_ESP32S3`) do not match libs subdir names (`esp32s3`).
+  const libsPkgDir = await findArduinoLibsPkgDir(packagesDir);
+  if (libsPkgDir) {
+    const chipFamilies = detectChipFamiliesFromEntries(entries);
+    for (const chip of chipFamilies) {
+      const libsInclude = path.join(libsPkgDir, chip, 'include');
+      try {
+        await fs.access(libsInclude);
+        injectFlags.push(`-I${toFwd(libsInclude)}`);
+      } catch {
+        // No include dir for this chip — skip
+      }
+    }
+  }
+
   // Inject into project source entries that are missing the Arduino core path
   for (const entry of entries) {
     if (!entry.file || !entry.arguments) {
@@ -511,6 +535,52 @@ async function expandResponseFiles(args, dir) {
 }
 
 /**
+ * Locate the framework-arduinoespressif32-libs PIO package directory.
+ * Returns the absolute path to the package, or null if not installed /
+ * packagesDir unreadable.
+ */
+async function findArduinoLibsPkgDir(packagesDir) {
+  try {
+    const dirs = await fs.readdir(packagesDir);
+    for (const d of dirs) {
+      if (d.startsWith('framework-arduinoespressif32-libs')) {
+        return path.join(packagesDir, d);
+      }
+    }
+  } catch {
+    // packagesDir unreadable
+  }
+  return null;
+}
+
+/**
+ * Detect ESP chip families from `CONFIG_IDF_TARGET_*` defines present in any
+ * entry's arguments.  Returns an array of lowercase chip names (e.g.
+ * `["esp32s3"]`) suitable for indexing into `framework-arduinoespressif32-libs`.
+ *
+ * Using defines (instead of variant directory names) keeps detection correct
+ * for board-specific variant folders such as `XIAO_ESP32S3` whose basename
+ * does not match a libs subdirectory.
+ */
+function detectChipFamiliesFromEntries(entries) {
+  const chips = new Set();
+  const re = /^-D\s*CONFIG_IDF_TARGET_([A-Z0-9]+)(?:=|$)/;
+  for (const entry of entries) {
+    const args = entry.arguments || [];
+    for (const a of args) {
+      if (typeof a !== 'string') {
+        continue;
+      }
+      const m = a.match(re);
+      if (m) {
+        chips.add(m[1].toLowerCase());
+      }
+    }
+  }
+  return Array.from(chips);
+}
+
+/**
  * Inject the framework-arduinoespressif32-libs SDK include path into entries.
  *
  * PIO's compiledb target does not emit the pre-compiled libs SDK include path
@@ -523,38 +593,31 @@ async function expandResponseFiles(args, dir) {
  */
 async function injectLibsSdkconfigInclude(entries, projectDir, packagesDir, envDir) {
   // 1. Find the libs package
-  let libsDir = null;
-  try {
-    const dirs = await fs.readdir(packagesDir);
-    for (const d of dirs) {
-      if (d.startsWith('framework-arduinoespressif32-libs')) {
-        libsDir = path.join(packagesDir, d);
-        break;
-      }
-    }
-  } catch {
-    return;
-  }
+  const libsDir = await findArduinoLibsPkgDir(packagesDir);
   if (!libsDir) {
     return;
   }
 
-  // 2. Detect chip from Arduino variant -I paths in existing entries
-  let chip = null;
-  for (const entry of entries) {
-    const args = entry.arguments || [];
-    for (const a of args) {
-      if (typeof a !== 'string') {
-        continue;
+  // 2. Detect chip family from CONFIG_IDF_TARGET_* defines (preferred — works
+  //    for board-specific variant folders like XIAO_ESP32S3).  Fall back to
+  //    the variant-path basename if no defines are found.
+  let chip = detectChipFamiliesFromEntries(entries)[0] || null;
+  if (!chip) {
+    for (const entry of entries) {
+      const args = entry.arguments || [];
+      for (const a of args) {
+        if (typeof a !== 'string') {
+          continue;
+        }
+        const m = a.match(/framework-arduinoespressif32[/\\]variants[/\\]([^/\\]+)/);
+        if (m) {
+          chip = m[1];
+          break;
+        }
       }
-      const m = a.match(/framework-arduinoespressif32[/\\]variants[/\\]([^/\\]+)/);
-      if (m) {
-        chip = m[1];
+      if (chip) {
         break;
       }
-    }
-    if (chip) {
-      break;
     }
   }
   if (!chip) {
@@ -1377,12 +1440,33 @@ export async function ensureClangdConfig(projectDir, observer) {
   const hasAddFlags = ESP_CLANGD_ADD_FLAGS.every((f) => existing.includes(f));
   // Respect any existing Index.Background entry (user may have set Skip, etc.)
   const hasIndexBackground = /^Index:\s*\n(?:.*\n)*?\s+Background:/m.test(existing);
+  // .ino files are not in compile_commands.json (PIO converts them to .cpp at
+  // build time).  Without an explicit language hint clangd cannot give them
+  // IntelliSense.  Detect any user-supplied PathMatch for .ino so we don't
+  // override it.  .clangd is a multi-document YAML file (separated by `---`),
+  // so check each document independently and accept both the inline form
+  //   PathMatch: .*\.ino
+  // and the list form
+  //   PathMatch:
+  //     - .*\.ino
+  const hasInoPathMatch = existing.split(/^---\s*$/m).some((doc) => {
+    if (!/^\s*If\s*:/m.test(doc)) {
+      return false;
+    }
+    // Inline value:   PathMatch: <anything containing \.ino>
+    if (/PathMatch\s*:\s*[^\n]*\\\.ino/.test(doc)) {
+      return true;
+    }
+    // List form:  PathMatch:\n    - <item containing \.ino>\n ...
+    const listMatch = doc.match(/PathMatch\s*:\s*\n((?:\s*-\s*[^\n]*\n?)+)/);
+    return !!(listMatch && /\\\.ino/.test(listMatch[1]));
+  });
 
   const needsEsp =
     useEspFlags && (!hasRemoveFlags || !hasAddFlags || !hasIndexBackground);
 
   // Already contains all required directives – nothing to do
-  if (hasBuiltinHeaders && hasSuppressDiag && !needsEsp) {
+  if (hasBuiltinHeaders && hasSuppressDiag && !needsEsp && hasInoPathMatch) {
     return;
   }
 
@@ -1412,7 +1496,29 @@ export async function ensureClangdConfig(projectDir, observer) {
     parts.push('Index:\n  Background: Build\n  StandardLibrary: true');
   }
 
-  const block = parts.join('\n') + '\n';
+  let block = parts.join('\n') + (parts.length ? '\n' : '');
+
+  // Treat .ino files as C++ and auto-include Arduino.h.  PIO preprocesses
+  // .ino → .cpp at build time, so .ino files never appear in
+  // compile_commands.json.  This conditional block lets clangd give them
+  // IntelliSense by inheriting include/define flags from neighbouring .cpp
+  // entries while supplying the language and the implicit Arduino.h include.
+  // It must live in its own YAML document (separated by `---`) because it
+  // uses an `If:` selector.
+  if (!hasInoPathMatch) {
+    const inoBlock =
+      [
+        'If:',
+        '  PathMatch: .*\\.ino',
+        'CompileFlags:',
+        '  Add:',
+        '    - "-x"',
+        '    - "c++"',
+        '    - "-include"',
+        '    - "Arduino.h"',
+      ].join('\n') + '\n';
+    block = block ? block + '---\n' + inoBlock : inoBlock;
+  }
 
   // Prepend the block (separated by ---) so we don't clobber user settings
   const content = existing ? block + '---\n' + existing : block;
