@@ -410,24 +410,14 @@ async function injectArduinoCoreIncludes(entries, projectDir, packagesDir) {
   // BLEDevice.h.  The deeper memory-type-specific include path
   // (<libs>/<chip>/<memory_type>/include) is handled separately by
   // injectLibsSdkconfigInclude.
-  let libsPkgDir = null;
-  try {
-    const dirs = await fs.readdir(packagesDir);
-    for (const d of dirs) {
-      if (d.startsWith('framework-arduinoespressif32-libs')) {
-        libsPkgDir = path.join(packagesDir, d);
-        break;
-      }
-    }
-  } catch {
-    // packagesDir unreadable — silently skip libs injection
-  }
+  //
+  // The chip family is derived from CONFIG_IDF_TARGET_* defines instead of
+  // the variant directory name — board-specific variant folders (e.g.
+  // `XIAO_ESP32S3`) do not match libs subdir names (`esp32s3`).
+  const libsPkgDir = await findArduinoLibsPkgDir(packagesDir);
   if (libsPkgDir) {
-    const chipVariants = new Set();
-    for (const v of variantDirs) {
-      chipVariants.add(path.basename(v));
-    }
-    for (const chip of chipVariants) {
+    const chipFamilies = detectChipFamiliesFromEntries(entries);
+    for (const chip of chipFamilies) {
       const libsInclude = path.join(libsPkgDir, chip, 'include');
       try {
         await fs.access(libsInclude);
@@ -545,6 +535,52 @@ async function expandResponseFiles(args, dir) {
 }
 
 /**
+ * Locate the framework-arduinoespressif32-libs PIO package directory.
+ * Returns the absolute path to the package, or null if not installed /
+ * packagesDir unreadable.
+ */
+async function findArduinoLibsPkgDir(packagesDir) {
+  try {
+    const dirs = await fs.readdir(packagesDir);
+    for (const d of dirs) {
+      if (d.startsWith('framework-arduinoespressif32-libs')) {
+        return path.join(packagesDir, d);
+      }
+    }
+  } catch {
+    // packagesDir unreadable
+  }
+  return null;
+}
+
+/**
+ * Detect ESP chip families from `CONFIG_IDF_TARGET_*` defines present in any
+ * entry's arguments.  Returns an array of lowercase chip names (e.g.
+ * `["esp32s3"]`) suitable for indexing into `framework-arduinoespressif32-libs`.
+ *
+ * Using defines (instead of variant directory names) keeps detection correct
+ * for board-specific variant folders such as `XIAO_ESP32S3` whose basename
+ * does not match a libs subdirectory.
+ */
+function detectChipFamiliesFromEntries(entries) {
+  const chips = new Set();
+  const re = /^-D\s*CONFIG_IDF_TARGET_([A-Z0-9]+)(?:=|$)/;
+  for (const entry of entries) {
+    const args = entry.arguments || [];
+    for (const a of args) {
+      if (typeof a !== 'string') {
+        continue;
+      }
+      const m = a.match(re);
+      if (m) {
+        chips.add(m[1].toLowerCase());
+      }
+    }
+  }
+  return Array.from(chips);
+}
+
+/**
  * Inject the framework-arduinoespressif32-libs SDK include path into entries.
  *
  * PIO's compiledb target does not emit the pre-compiled libs SDK include path
@@ -557,38 +593,31 @@ async function expandResponseFiles(args, dir) {
  */
 async function injectLibsSdkconfigInclude(entries, projectDir, packagesDir, envDir) {
   // 1. Find the libs package
-  let libsDir = null;
-  try {
-    const dirs = await fs.readdir(packagesDir);
-    for (const d of dirs) {
-      if (d.startsWith('framework-arduinoespressif32-libs')) {
-        libsDir = path.join(packagesDir, d);
-        break;
-      }
-    }
-  } catch {
-    return;
-  }
+  const libsDir = await findArduinoLibsPkgDir(packagesDir);
   if (!libsDir) {
     return;
   }
 
-  // 2. Detect chip from Arduino variant -I paths in existing entries
-  let chip = null;
-  for (const entry of entries) {
-    const args = entry.arguments || [];
-    for (const a of args) {
-      if (typeof a !== 'string') {
-        continue;
+  // 2. Detect chip family from CONFIG_IDF_TARGET_* defines (preferred — works
+  //    for board-specific variant folders like XIAO_ESP32S3).  Fall back to
+  //    the variant-path basename if no defines are found.
+  let chip = detectChipFamiliesFromEntries(entries)[0] || null;
+  if (!chip) {
+    for (const entry of entries) {
+      const args = entry.arguments || [];
+      for (const a of args) {
+        if (typeof a !== 'string') {
+          continue;
+        }
+        const m = a.match(/framework-arduinoespressif32[/\\]variants[/\\]([^/\\]+)/);
+        if (m) {
+          chip = m[1];
+          break;
+        }
       }
-      const m = a.match(/framework-arduinoespressif32[/\\]variants[/\\]([^/\\]+)/);
-      if (m) {
-        chip = m[1];
+      if (chip) {
         break;
       }
-    }
-    if (chip) {
-      break;
     }
   }
   if (!chip) {
