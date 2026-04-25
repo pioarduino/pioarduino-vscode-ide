@@ -404,6 +404,40 @@ async function injectArduinoCoreIncludes(entries, projectDir, packagesDir) {
     injectFlags.push(`-I${toFwd(v)}`);
   }
 
+  // Inject the top-level per-chip include directory from
+  // framework-arduinoespressif32-libs (e.g. <libs>/esp32s3/include/), which
+  // contains pre-compiled Arduino library headers like WiFiClient.h and
+  // BLEDevice.h.  The deeper memory-type-specific include path
+  // (<libs>/<chip>/<memory_type>/include) is handled separately by
+  // injectLibsSdkconfigInclude.
+  let libsPkgDir = null;
+  try {
+    const dirs = await fs.readdir(packagesDir);
+    for (const d of dirs) {
+      if (d.startsWith('framework-arduinoespressif32-libs')) {
+        libsPkgDir = path.join(packagesDir, d);
+        break;
+      }
+    }
+  } catch {
+    // packagesDir unreadable — silently skip libs injection
+  }
+  if (libsPkgDir) {
+    const chipVariants = new Set();
+    for (const v of variantDirs) {
+      chipVariants.add(path.basename(v));
+    }
+    for (const chip of chipVariants) {
+      const libsInclude = path.join(libsPkgDir, chip, 'include');
+      try {
+        await fs.access(libsInclude);
+        injectFlags.push(`-I${toFwd(libsInclude)}`);
+      } catch {
+        // No include dir for this chip — skip
+      }
+    }
+  }
+
   // Inject into project source entries that are missing the Arduino core path
   for (const entry of entries) {
     if (!entry.file || !entry.arguments) {
