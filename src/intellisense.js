@@ -217,54 +217,15 @@ export async function ensureCompileCommands(projectDir, observer, envDir) {
     return;
   }
 
-  // ESP-IDF and Arduino-as-component projects rely on CMake / Ninja to produce
-  // compile_commands.json.  Do not trigger `pio run --target compiledb` for
-  // these project types — the build system already owns that file.
-  if (await isIdfProject(observer, envDir)) {
-    const ccPath = envDir ? path.join(envDir, 'compile_commands.json') : null;
-
-    if (!ccPath) {
-      return; // envDir unknown — watcher in manager.js will handle it when build completes
-    }
-
-    let origStat = null;
-    try {
-      origStat = await fs.stat(ccPath);
-    } catch {
-      // File does not exist yet — user must build first.
-      vscode.window.showInformationMessage(
-        'Build your ESP-IDF project first to generate compile_commands.json for clangd IntelliSense. ' +
-          'IntelliSense will activate automatically after the build completes.',
-      );
-      return;
-    }
-
-    // Re-process only when the CMake output is newer than the clangd copy.
-    const clangdPath = path.join(
-      projectDir,
-      '.cache',
-      'clangd',
-      'compile_commands.json',
-    );
-    let clangdStat = null;
-    try {
-      clangdStat = await fs.stat(clangdPath);
-    } catch {
-      // clangd copy missing — process now
-    }
-
-    if (!clangdStat || origStat.mtimeMs > clangdStat.mtimeMs) {
-      await fixupCompileCommands(projectDir, envDir, { allowRootFallback: false });
-    }
-    return;
-  }
+  // For all project types (including ESP-IDF and Arduino-as-IDF-component)
+  // we use exclusively the project-root compile_commands.json produced by
+  // PIO/SCons (`pio run -t compiledb`).  The CMake/Ninja envDir file is
+  // never consulted: only the SCons-generated root DB reflects the full set
+  // of include paths and flags actually applied when the source was compiled.
 
   // Check the processed clangd copy first – if it exists we are done.
   const clangdPath = path.join(projectDir, '.cache', 'clangd', 'compile_commands.json');
-  const origCandidates = [
-    ...(envDir ? [path.join(envDir, 'compile_commands.json')] : []),
-    path.join(projectDir, 'compile_commands.json'),
-  ];
+  const origPath = path.join(projectDir, 'compile_commands.json');
 
   let clangdStat = null;
   try {
@@ -273,21 +234,26 @@ export async function ensureCompileCommands(projectDir, observer, envDir) {
     // processed copy missing
   }
 
-  for (const ccPath of origCandidates) {
-    try {
-      const origStat = await fs.stat(ccPath);
-      if (!clangdStat || origStat.mtimeMs > clangdStat.mtimeMs) {
-        await fixupCompileCommands(projectDir, envDir);
-      }
-      return;
-    } catch {
-      // not found here
+  let origStat = null;
+  try {
+    origStat = await fs.stat(origPath);
+  } catch {
+    // project-root compile_commands.json not present
+  }
+
+  if (origStat) {
+    if (!clangdStat || origStat.mtimeMs > clangdStat.mtimeMs) {
+      await fixupCompileCommands(projectDir, envDir);
     }
+    return;
   }
   if (clangdStat) {
     return; // processed copy exists and no source DB was found
   }
   // No compile_commands.json at all – rebuild from scratch.
+  vscode.window.showInformationMessage(
+    'pioarduino: Build your project first to generate compile_commands.json for clangd IntelliSense.',
+  );
   observer.rebuildIndex({ force: true });
 }
 
@@ -301,9 +267,10 @@ export async function ensureCompileCommands(projectDir, observer, envDir) {
  */
 /**
  * For Arduino-as-component projects (framework = arduino, espidf), the
- * CMake build system generates compile_commands.json entries for project
- * source files without the Arduino core include paths.  This means clangd
- * cannot resolve `#include "Arduino.h"` or any other Arduino core header.
+ * project-root compile_commands.json (produced by `pio run -t compiledb`)
+ * generates entries for project source files without the Arduino core
+ * include paths.  This means clangd cannot resolve `#include "Arduino.h"`
+ * or any other Arduino core header.
  *
  * This function detects the Arduino core directories by scanning the
  * packages directory for `framework-arduinoespressif32`, then injects
@@ -560,7 +527,12 @@ function detectPicolibcFlags(args) {
 async function detectPicolibcInProject(projectDir) {
   try {
     // Check the processed clangd compile_commands.json
-    const clangdPath = path.join(projectDir, '.cache', 'clangd', 'compile_commands.json');
+    const clangdPath = path.join(
+      projectDir,
+      '.cache',
+      'clangd',
+      'compile_commands.json',
+    );
     const content = await fs.readFile(clangdPath, 'utf-8');
     return content.includes('-specs=picolibc.specs');
   } catch {
@@ -608,8 +580,7 @@ async function querySystemIncludes(compilerPath, extraFlags = []) {
     // compiler not runnable or timed out
   }
   // Filter out C++ specific paths when querying for C to avoid confusing clangd
-  const filteredDirs =
-    lang === 'c' ? dirs.filter((d) => !d.includes('/c++/')) : dirs;
+  const filteredDirs = lang === 'c' ? dirs.filter((d) => !d.includes('/c++/')) : dirs;
   _sysIncludeCache.set(cacheKey, filteredDirs);
   return filteredDirs;
 }
@@ -900,18 +871,14 @@ async function injectArduinoNewlibPlatformInclude(entries, packagesDir) {
     }
     // Find first -I flag to insert before it (simplified: -I but not -isystem)
     const firstIncludeIdx = entry.arguments.findIndex(
-      (a) => typeof a === 'string' && a.startsWith('-I') && !a.startsWith('-isystem')
+      (a) => typeof a === 'string' && a.startsWith('-I') && !a.startsWith('-isystem'),
     );
     const insertAt = firstIncludeIdx !== -1 ? firstIncludeIdx : entry.arguments.length;
     entry.arguments.splice(insertAt, 0, newlibFlag);
   }
 }
 
-export async function fixupCompileCommands(
-  projectDir,
-  envDir,
-  { allowRootFallback = true } = {},
-) {
+export async function fixupCompileCommands(projectDir, envDir) {
   if (
     getActiveBackendId() !== 'clangd' ||
     !projectDir ||
@@ -919,31 +886,22 @@ export async function fixupCompileCommands(
   ) {
     return;
   }
-  // Read the original compile_commands.json – try the env build dir first
-  // (CMake / ninja output for Arduino-as-component / ESP-IDF projects), then
-  // fall back to project root (PIO compiledb output).  The original is never
-  // modified.
-  const rootPath = path.join(projectDir, 'compile_commands.json');
-  const envPath = envDir ? path.join(envDir, 'compile_commands.json') : undefined;
+  // Read the original compile_commands.json – exclusively from the project
+  // root, produced by PIO/SCons (`pio run -t compiledb`).  The CMake/ninja
+  // envDir file is intentionally NOT used: for ESP-IDF and Arduino-as-IDF
+  // projects the CMake DB only covers files actually built by CMake, and
+  // project src/ files compiled by SCons end up with missing -I flags there.
+  // The SCons-generated root DB reflects the final build command line that
+  // actually compiled each file and is the single source of truth.
+  // The original file is never modified.
+  const sourcePath = path.join(projectDir, 'compile_commands.json');
 
-  let raw;
-  if (envPath) {
-    try {
-      raw = await fs.readFile(envPath, 'utf-8');
-    } catch {
-      // not found in envDir – try root
-    }
-  }
-  if (!raw && !allowRootFallback) {
+  const sourceStat = await fs.stat(sourcePath).catch(() => null);
+  if (!sourceStat) {
     return;
   }
-  if (!raw) {
-    try {
-      raw = await fs.readFile(rootPath, 'utf-8');
-    } catch {
-      return;
-    }
-  }
+
+  const raw = await fs.readFile(sourcePath, 'utf-8');
 
   let entries;
   try {
@@ -1084,7 +1042,12 @@ export async function fixupCompileCommands(
             shouldFilter = true;
           }
         }
-        if (!shouldFilter && typeof arg === 'string' && arg.startsWith('-isystem') && arg.length > '-isystem'.length) {
+        if (
+          !shouldFilter &&
+          typeof arg === 'string' &&
+          arg.startsWith('-isystem') &&
+          arg.length > '-isystem'.length
+        ) {
           const p = arg.slice('-isystem'.length);
           if (isToolchainLibcPath(p)) {
             shouldFilter = true;
@@ -1126,9 +1089,10 @@ export async function fixupCompileCommands(
         let filteredDirs = sysDirs;
         if (hasPicolibcPath) {
           // Strip only the known-bad patterns (same regex used in step 2b)
-          filteredDirs = sysDirs.filter((d) =>
-            !/xtensa-esp-elf[/\\]include$/.test(d) &&
-            !/riscv\d+-esp-elf[/\\]include$/.test(d)
+          filteredDirs = sysDirs.filter(
+            (d) =>
+              !/xtensa-esp-elf[/\\]include$/.test(d) &&
+              !/riscv\d+-esp-elf[/\\]include$/.test(d),
           );
         }
 
@@ -1154,7 +1118,7 @@ export async function fixupCompileCommands(
   }
 
   // 4. For Arduino-as-component projects (framework = arduino, espidf), the
-  //    CMake-generated compile_commands.json for project src/ files does not
+  //    project-root compile_commands.json for project src/ files does not
   //    include the Arduino core headers (cores/esp32, variants/<variant>).
   //    Scan all entries for Arduino core include paths and inject them into
   //    project entries that are missing them.
@@ -1256,8 +1220,8 @@ export async function fixupCompileCommands(
   }
 
   // Write the processed database to a dedicated clangd directory so the
-  // original compile_commands.json (project root or env build dir) is never
-  // modified.  --compile-commands-dir is pointed here by ensureClangdArgs().
+  // original project-root compile_commands.json is never modified.
+  // --compile-commands-dir is pointed here by ensureClangdArgs().
   const clangdDir = path.join(projectDir, '.cache', 'clangd');
   await fs.mkdir(clangdDir, { recursive: true });
   const destPath = path.join(clangdDir, 'compile_commands.json');
@@ -1420,7 +1384,10 @@ export function disposeAllIdfWatchers() {
   disposeAllClangdCcWatchers();
 }
 
-// ── Watchers for CMake-generated compile_commands.json (IDF projects) ──
+// ── Watchers for the project-root compile_commands.json (IDF projects) ──
+// The file is produced by PIO/SCons (`pio run -t compiledb`) and is the only
+// source consumed for clangd post-processing — the CMake/Ninja envDir copy
+// is intentionally ignored.
 const _idfCcWatchers = new Map(); // normalized projectDir → Disposable
 
 export function disposeIdfCcWatcher(projectDir) {
@@ -1439,11 +1406,11 @@ function disposeAllIdfCcWatchers() {
   _idfCcWatchers.clear();
 }
 
-// ── Watchers for the processed clangd compile_commands.json (non-IDF) ──
+// ── Watchers for the processed clangd compile_commands.json ──
 // If the user (or some external tool) deletes .cache/clangd/compile_commands.json
 // while the project is open, we re-run ensureCompileCommands so clangd gets a
-// fresh database (regenerated from the original PIO/CMake output, or rebuilt
-// from scratch if no source DB is left).
+// fresh database (regenerated from the project-root PIO/SCons compile_commands.json,
+// or rebuilt from scratch if no source DB is left).
 const _clangdCcWatchers = new Map(); // normalized projectDir → Disposable
 
 export function disposeClangdCcWatcher(projectDir) {
@@ -1531,30 +1498,67 @@ export function watchClangdCompileCommands(projectDir, onMissing) {
 }
 
 /**
- * Watch the CMake-generated compile_commands.json in envDir.
+ * Watch the project-root compile_commands.json (produced by PIO/SCons
+ * `pio run -t compiledb`) for an IDF project.  The CMake/Ninja envDir file
+ * is intentionally NOT watched — the SCons-generated root DB is the only
+ * source for clangd post-processing.
  * Calls onReady() whenever the file is created or changed (e.g. after a build).
  */
-export function watchIdfCompileCommands(projectDir, envDir, onReady) {
+export function watchIdfCompileCommands(projectDir, _envDir, onReady) {
   disposeIdfCcWatcher(projectDir);
-  if (!envDir) {
+  if (!projectDir) {
     return;
   }
-  const pattern = new vscode.RelativePattern(envDir, 'compile_commands.json');
-  const watcher = vscode.workspace.createFileSystemWatcher(pattern);
+  const disposables = [];
+
+  // If a second event arrives while onReady is still running, coalesce it so
+  // it is not silently dropped — the handler re-runs once after the current
+  // invocation completes.
+  let pending = false;
+  let queued = false;
+  const rootFile = path.join(projectDir, 'compile_commands.json');
   const handler = async () => {
+    if (pending) {
+      queued = true;
+      return;
+    }
+    pending = true;
     try {
-      await fs.access(path.join(envDir, 'compile_commands.json'));
+      await fs.access(rootFile);
       await onReady();
     } catch (err) {
       // file not yet accessible (will fire again when ready), or onReady threw
       if (err && err.code !== 'ENOENT') {
         console.warn(`IDF compile_commands.json watcher: ${err.message || err}`);
       }
+    } finally {
+      pending = false;
+      if (queued) {
+        queued = false;
+        // Re-invoke onReady directly so the coalesced event is not lost.
+        onReady().catch((err) => {
+          if (err && err.code !== 'ENOENT') {
+            console.warn(`IDF compile_commands.json watcher: ${err.message || err}`);
+          }
+        });
+      }
     }
   };
-  watcher.onDidCreate(handler);
-  watcher.onDidChange(handler);
-  _idfCcWatchers.set(path.normalize(projectDir), watcher);
+
+  const rootWatcher = vscode.workspace.createFileSystemWatcher(
+    new vscode.RelativePattern(projectDir, 'compile_commands.json'),
+  );
+  rootWatcher.onDidCreate(handler);
+  rootWatcher.onDidChange(handler);
+  disposables.push(rootWatcher);
+
+  _idfCcWatchers.set(path.normalize(projectDir), {
+    dispose() {
+      for (const d of disposables) {
+        d.dispose();
+      }
+    },
+  });
 }
 
 function _ensureIniWatcher(projectDir) {
@@ -1594,11 +1598,6 @@ async function isIdfProjectByFilesystem(projectDir, envDir) {
 /**
  * Detect whether the active environment uses ESP-IDF — either as a standalone
  * framework or as the base for Arduino-as-a-component.
- *
- * For these project types the build system (CMake / Ninja) already generates
- * compile_commands.json natively, so pioarduino-vscode-ide must not trigger
- * `pio run --target compiledb`.  Post-processing (fixupCompileCommands) must
- * still run to copy/rewrite the CMake-generated file into .cache/clangd/.
  */
 export async function isIdfProject(observer, envDir) {
   if (!observer) {
@@ -1775,8 +1774,10 @@ export async function ensureClangdConfig(projectDir, observer) {
     parts.push('Diagnostics:\n  Suppress: [pp_expects_filename, unused-includes]');
   }
 
+  // Background indexing of large codebases crashes esp-clangd because
+  // too many burst parallel Cross Compiler calls. Use "Skip" until this is fixed.
   if (useEspFlags && !hasIndexBackground) {
-    parts.push('Index:\n  Background: Build\n  StandardLibrary: true');
+    parts.push('Index:\n  Background: Skip\n  StandardLibrary: true');
   }
 
   let block = parts.join('\n') + (parts.length ? '\n' : '');
@@ -1918,23 +1919,30 @@ function upsertArg(args, prefix, value) {
  * debugger has no configuration to start from, so we run
  * `pio project init --ide vscode` to generate the full debug configuration
  * (executable, toolchainBinDir, svdPath, preLaunchTask, etc.).
+ *
+ * When `env` is provided the file is always regenerated so that it reflects the
+ * currently selected environment (not just the default one).
  */
-export async function ensureLaunchJson(projectDir) {
+export async function ensureLaunchJson(projectDir, env) {
   if (!projectDir) {
     return;
   }
-  const launchPath = path.join(projectDir, '.vscode', 'launch.json');
-  try {
-    await fs.access(launchPath);
-    return; // already exists
-  } catch {
-    // file does not exist – generate it via CLI
+  if (!env) {
+    // Without a known env, only create the file if it is completely missing.
+    const launchPath = path.join(projectDir, '.vscode', 'launch.json');
+    try {
+      await fs.access(launchPath);
+      return; // already exists
+    } catch {
+      // file does not exist – generate it via CLI
+    }
+  }
+  const args = ['project', 'init', '--ide', 'vscode'];
+  if (env) {
+    args.push('--environment', env);
   }
   try {
-    await pioNodeHelpers.core.getPIOCommandOutput(
-      ['project', 'init', '--ide', 'vscode'],
-      { projectDir },
-    );
+    await pioNodeHelpers.core.getPIOCommandOutput(args, { projectDir });
   } catch (err) {
     console.warn(`Failed to generate launch.json: ${err.message}`);
   }

@@ -4,6 +4,67 @@ All notable changes to the **pioarduino IDE** VSCode extension are documented in
 
 ---
 
+## [1.4.4] - 2026-05-11
+
+### ♻️ Refactor
+
+- **Simplified** - IntelliSense compilation database management by using only project-root compile command files, removing dependency on environment directory copies.
+
+### 🔧 Tests
+
+- **Migrated test suite to Jest** — added Babel config, Jest config, and `__mocks__/vscode.js` mock module; all existing and new tests run via `npm test`.
+- **`src/project/task-tree.test.js`** — comprehensive tests for `ProjectTasksTreeProvider`: constructor, `getEnvTasks` (env filtering, group filtering, env-independent task merging, multienv exclusion, DEFAULT_ENV_NAME guard), `taskToTreeItem` (label, tooltip, command shape, " All" suffix logic), `getTreeItem`, `getRootChildren` (id/iconPath attributes, expand/collapse state), `getEnvChildren` (group node attributes, collapsible state, env-independent tasks), `getTaskGroups` (ordering, deduplication), and `getChildren` routing.
+- **`src/project/helpers.test.js`** — full coverage of `isPIOProjectSync`, `getPIOProjectDirs`, `getActiveEditorProjectDir` (including null `getWorkspaceFolder` case), `getProjectItemState`, `updateProjectItemState` (cleanup behaviour, key overwrite), and `getLastProjectDir`.
+- **`src/project/config.test.js`** — full coverage of `ProjectConfigLanguageProvider`: constructor, dispose, `getOptions` (fetch + cache), `renderOptionDocs` (all attribute types), `getScopeAt`, `getOptionAt` (direct match + walk-back), `isOptionValueLocation`, `provideHover`, `providePackageHover` (platform, lib_deps, search link, no-value), `provideCompletionItems` (cancellation, routing), `provideCompletionOptions`, `provideCompletionValues` (port/baudrate/typed routing), `provideTypedCompletionValues`, `createCustomCompletionValueItem`, `provideCompletionBaudrates`, `provideCompletionPorts` (caching), and `lintConfig` (ignore non-ini, warnings, errors, absolute/relative source paths).
+- **`src/intellisense.test.js`** — tests for all exported functions: `getActiveBackendId`, `getActiveBackend`, `getActiveConflictedExtensionIds`, `isBackendExtensionInstalled`, `applyBackendConfigDefaults` (skip when not installed, set unset keys, overwrite other-backend keys, preserve user keys), `invalidateIdfCache`, `disposeAllIdfWatchers`, `disposeIdfCcWatcher`, `disposeClangdCcWatcher`, `watchClangdCompileCommands` (3 watchers, onDidDelete, dispose-on-re-register), `watchIdfCompileCommands` (1 vs 2 watchers, onReady, coalescing), `isIdfProject` (null observer, null env, espidf detection, arduino negative, filesystem fallback, caching), and `warnIfBackendMissing`.
+- **`src/installer/manager.test.js`** — tests for `InstallationManager`: constructor, `lock`/`unlock`/`locked` (timestamp, expiry), `onDidStatusChange`, `createStages` (lazy init, no double-create), `check` (pass, fail, throw+warn), `install` (PIO Home shutdown, stage install, Finished message, increment scaling), and `destroy` (calls stage destroy, resets to null, handles missing destroy method). All `afterEach` blocks call both `jest.clearAllMocks()` and `jest.restoreAllMocks()`.
+- **`src/installer/python-prompt.test.js`** — tests for `PythonPrompt`: status constants, `prompt()` for all branches (dismiss, Try again, Install Python URL open, Abort, I have Python with valid/cancelled/empty path), and `validateInput` function (rejects invalid paths, accepts valid paths). The `fs-plus` mock shares a single `jest.fn()` instance across `default.isFileSync` and the top-level export so both the implementation and tests hit the same mock.
+
+---
+
+## [1.4.3] - 2026-05-10
+
+### 🐛 Bug Fixes
+
+- **clangd IntelliSense: prefer SCons `compile_commands.json` for IDF projects** — `fixupCompileCommands` and `ensureCompileCommands` now prefer the project-root `compile_commands.json` produced by `pio run -t compiledb` (SCons) over the CMake/Ninja one in the build environment directory.
+
+---
+
+## [1.4.2] - 2026-05-09
+
+### 📦 Dependencies
+- Update `pioarduino-node-helpers` to v12.6.0
+
+---
+
+## [1.4.1] - 2026-05-08
+
+### ✨ New Features
+- **ESP Crash Decoder integration** — When the standalone "Monitor" task is triggered and the [ESP Crash Decoder](https://marketplace.visualstudio.com/items?itemName=Jason2866.esp-decoder) extension (`Jason2866.esp-decoder`) is installed, pioarduino now launches its serial monitor instead of the PlatformIO CLI terminal. The currently selected port (from the status-bar Port Switcher) and the project's configured `monitor_speed` baud rate are forwarded automatically so ESP Decoder connects immediately without prompting. Falls back to the regular CLI monitor on failure.
+
+### 📦 Dependencies
+- Update `pioarduino-node-helpers` to v12.5.0
+
+---
+
+## [1.4.0] - 2026-05-01
+
+### 🐛 Bug Fix
+- **clangd + launch.json:** When clangd was active, `launch.json` was always generated using the default environment instead of the currently selected one. `ensureLaunchJson` now accepts the active environment and passes `--environment <env>` to `pio project init --ide vscode`, ensuring the correct executable path, `toolchainBinDir`, `svdPath`, and `preLaunchTask` are written for the selected environment.
+
+### 📦 Dependencies
+- Update `pioarduino-vscode-debug` to v1.2.0
+
+### 🚀 Debug — New Features (pioarduino-vscode-debug v1.2.0)
+
+- **RTOS Thread Awareness** — Auto-detects and displays threads for FreeRTOS, ThreadX, and Zephyr with stack info, enriched labels (name / state / priority / source), and thread-aware stack-trace mapping in the debugger.
+- **Memory Editor** — Supports in-editor memory writes, typed value views (u8 → u64, i8 → i64, float, double) with endianness toggle, ASCII view, byte-diff highlighting, and per-document state when multiple memory windows are open.
+- **Peripheral Viewer (SVD)** — SVD file auto-discovery, peripheral search/filter UI, register change highlighting (previous value tracking with icon/tooltip), `<derivedFrom>` inheritance with transitive chains and circular-reference detection, and enriched bit-field tooltips (description, Reset, Current, Previous).
+- **Diagnostics Panel** — Centralized diagnostic log output channel with export and clear commands, domain-specific error handlers (GDB, connection, SVD, memory), and configurable dev-debug verbosity via `platformio-debug.diagnostics.showDevDebugOutput`.
+- **Configuration wiring** — `platformio-debug.memory.defaultDataType`, `platformio-debug.memory.defaultEndianness`, and `platformio-debug.diagnostics.showDevDebugOutput` workspace settings are now read and applied on startup and on configuration change.
+
+---
+
 ## [1.3.23] - 2026-04-29
 
 ### 🐛 Bug Fix
