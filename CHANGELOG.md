@@ -4,11 +4,13 @@ All notable changes to the **pioarduino IDE** VSCode extension are documented in
 
 ---
 
-## [1.x.x] - not yet released
+## [1.4.4] - 2026-05-11
 
+### ♻️ Refactor
 
+- **Simplified** - IntelliSense compilation database management by using only project-root compile command files, removing dependency on environment directory copies.
 
-### 🧪 Tests
+### 🔧 Tests
 
 - **Migrated test suite to Jest** — added Babel config, Jest config, and `__mocks__/vscode.js` mock module; all existing and new tests run via `npm test`.
 - **`src/project/task-tree.test.js`** — comprehensive tests for `ProjectTasksTreeProvider`: constructor, `getEnvTasks` (env filtering, group filtering, env-independent task merging, multienv exclusion, DEFAULT_ENV_NAME guard), `taskToTreeItem` (label, tooltip, command shape, " All" suffix logic), `getTreeItem`, `getRootChildren` (id/iconPath attributes, expand/collapse state), `getEnvChildren` (group node attributes, collapsible state, env-independent tasks), `getTaskGroups` (ordering, deduplication), and `getChildren` routing.
