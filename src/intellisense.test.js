@@ -26,6 +26,7 @@ import {
 } from './intellisense';
 import { extension } from './main';
 import { promises as fsMock } from 'fs';
+import path from 'path';
 import vscode from 'vscode';
 
 jest.mock('vscode', () => jest.requireActual('../__mocks__/vscode'));
@@ -578,7 +579,7 @@ describe('warnIfBackendMissing', () => {
 
 describe('Database freshness validation', () => {
   const projectDir = '/workspace/project';
-  const clangdPath = '/workspace/project/.cache/clangd/compile_commands.json';
+  const clangdPath = path.join(projectDir, '.cache', 'clangd', 'compile_commands.json');
   const mockObserver = {
     rebuildIndex: jest.fn(),
   };
@@ -721,6 +722,30 @@ describe('Database freshness validation', () => {
     );
   });
 
+  it('treats names like "..generated" as within project (not parent traversal)', async () => {
+    setBackend('clangd');
+    setExtensionInstalled(true);
+
+    const validDb = [
+      {
+        directory: '/workspace/project/.generated',
+        file: '/workspace/project/.generated/header.h',
+      },
+    ];
+
+    fsMock.stat.mockImplementation((path) => {
+      if (path === clangdPath) {
+        return { mtimeMs: Date.now() };
+      }
+      throw new Error('File not found');
+    });
+    fsMock.readFile.mockResolvedValue(JSON.stringify(validDb));
+
+    await ensureCompileCommands(projectDir, mockObserver, undefined);
+
+    expect(vscode.window.showWarningMessage).not.toHaveBeenCalled();
+  });
+
   it('uses case-insensitive comparison on Windows', async () => {
     setBackend('clangd');
     setExtensionInstalled(true);
@@ -729,6 +754,9 @@ describe('Database freshness validation', () => {
       writable: true,
     });
 
+    const windowsProjectDir = 'c:\\workspace\\project';
+    const windowsClangdPath = path.join(windowsProjectDir, '.cache', 'clangd', 'compile_commands.json');
+
     const windowsDb = [
       {
         directory: 'C:\\Workspace\\Project',
@@ -736,7 +764,6 @@ describe('Database freshness validation', () => {
       },
     ];
 
-    const windowsClangdPath = 'c:\\workspace\\project\\.cache\\clangd\\compile_commands.json';
     fsMock.stat.mockImplementation((path) => {
       if (path === windowsClangdPath) {
         return { mtimeMs: Date.now() };
@@ -745,10 +772,10 @@ describe('Database freshness validation', () => {
     });
     fsMock.readFile.mockResolvedValue(JSON.stringify(windowsDb));
 
-    // Use the same path with different case
-    const windowsProjectDir = 'c:\\workspace\\project';
     await ensureCompileCommands(windowsProjectDir, mockObserver, undefined);
 
+    // Confirm the test reached database reading
+    expect(fsMock.readFile).toHaveBeenCalledWith(windowsClangdPath, 'utf8');
     // Should not warn because Windows comparison is case-insensitive
     expect(vscode.window.showWarningMessage).not.toHaveBeenCalled();
   });

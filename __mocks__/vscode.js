@@ -48,16 +48,22 @@ class EventEmitter {
   constructor() {
     this._listeners = [];
   }
-  event = () => {
+  event = (listener) => {
+    this._listeners.push(listener);
     return {
-      subscribe: (listener) => {
-        this._listeners.push(listener);
-        return { dispose: () => {} };
+      dispose: () => {
+        const index = this._listeners.indexOf(listener);
+        if (index !== -1) {
+          this._listeners.splice(index, 1);
+        }
       },
     };
   };
   fire(data) {
     this._listeners.forEach((listener) => listener(data));
+  }
+  dispose() {
+    this._listeners = [];
   }
 }
 

@@ -263,8 +263,12 @@ export async function ensureCompileCommands(projectDir, observer, envDir) {
         // Use path.relative to check if entry is outside the project directory
         // This ensures directory boundaries are enforced
         const relativePath = path.relative(currentDir, entryDir);
-        // If relative path starts with '..', the entry is outside the project
-        const isOutsideProject = relativePath.startsWith('..') || path.isAbsolute(relativePath);
+        // If relative path is exact parent or starts with '../' (not '..' followed by other chars),
+        // the entry is outside the project. Also check for absolute paths.
+        const isOutsideProject =
+          relativePath === '..' ||
+          relativePath.startsWith(`..${path.sep}`) ||
+          path.isAbsolute(relativePath);
         // On Windows, do case-insensitive comparison; on other platforms, case-sensitive
         const pathsMatch = process.platform === 'win32'
           ? entryDir.toLowerCase() === currentDir.toLowerCase()

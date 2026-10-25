@@ -851,7 +851,8 @@
         "platformio-ide.autoRebuildAutocompleteIndex": {
           "type": "boolean",
           "default": true,
-          "description": "Automatically rebuild the project IntelliSense index when platformio.ini is changed or when new libraries are installed"
+          "description": "Automatically rebuild the project IntelliSense index when platformio.ini is changed or when new libraries are installed",
+          "scope": "resource"
         },
         "platformio-ide.intelliSenseEngine": {
           "type": "string",
@@ -874,7 +875,8 @@
         "platformio-ide.autoPreloadEnvTasks": {
           "type": "boolean",
           "default": false,
-          "description": "Automatically preload ALL project environment tasks"
+          "description": "Automatically preload ALL project environment tasks",
+          "scope": "resource"
         },
         "platformio-ide.customPATH": {
           "type": [
