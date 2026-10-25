@@ -1077,6 +1077,7 @@
   },
   "scripts": {
     "build": "webpack --mode production && vsce package",
+    "build:webpack": "webpack --mode production",
     "test": "jest",
     "test:shellTokenize": "node src/shellTokenize.test.js",
     "lint": "eslint .eslintrc.js src",

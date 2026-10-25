@@ -29,7 +29,9 @@ jobs:
         run: node src/shellTokenize.test.js
       - name: Compile vsix package
         run: |
-          npm run build
+          npm run build:webpack
+          npm prune --omit=dev
+          npx --yes --package=@vscode/vsce@~3.9.1 vsce package
       - name: Upload vsix artifact
         uses: actions/upload-artifact@v7
         with:
