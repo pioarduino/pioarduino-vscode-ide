@@ -120,6 +120,9 @@ export default class ProjectManager {
       settings: {
         autoPreloadEnvTasks: extension.getConfiguration('autoPreloadEnvTasks'),
         autoRebuild: extension.getConfiguration('autoRebuildAutocompleteIndex'),
+        // Note: These settings are global to the ProjectPool and apply to all projects.
+        // Project-scoped settings require changes in pioarduino-node-helpers to support
+        // per-project configuration lookup. See issue #105.
       },
     });
 

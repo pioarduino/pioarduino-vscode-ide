@@ -152,8 +152,15 @@ class PlatformIOVSCodeExtension {
     );
   }
 
-  getConfiguration(id) {
-    return vscode.workspace.getConfiguration('platformio-ide').get(id);
+  getConfiguration(id, resourceUri) {
+    return vscode.workspace
+      .getConfiguration('platformio-ide', resourceUri)
+      .get(id);
+  }
+
+  // Helper to get project-scoped configuration
+  getProjectConfiguration(id, projectDir) {
+    return this.getConfiguration(id, vscode.Uri.file(projectDir));
   }
 
   loadEnterpriseSettings() {
