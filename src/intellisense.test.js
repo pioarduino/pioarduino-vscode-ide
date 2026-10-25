@@ -728,8 +728,8 @@ describe('Database freshness validation', () => {
 
     const validDb = [
       {
-        directory: '/workspace/project/.generated',
-        file: '/workspace/project/.generated/header.h',
+        directory: '/workspace/project/..generated',
+        file: '/workspace/project/..generated/header.h',
       },
     ];
 

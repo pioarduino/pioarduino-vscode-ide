@@ -253,9 +253,10 @@ export async function ensureCompileCommands(projectDir, observer, envDir) {
       const dbContent = await fs.readFile(clangdPath, 'utf8');
       const db = JSON.parse(dbContent);
       // Check if any entry has a directory that doesn't match the current project path
-      const hasStalePaths = db.some((entry) => {
+      let hasStalePaths = false;
+      for (const entry of db) {
         if (!entry.directory) {
-          return false;
+          continue;
         }
         // Use platform-specific path module for proper case handling
         const pathModule = process.platform === 'win32' ? path.win32 : path;
@@ -271,9 +272,22 @@ export async function ensureCompileCommands(projectDir, observer, envDir) {
           relativePath === '..' ||
           relativePath.startsWith(`..${pathModule.sep}`) ||
           pathModule.isAbsolute(relativePath);
-        // Stale if outside project (platform-specific case handling is built into pathModule)
-        return isOutsideProject;
-      });
+        // External working directories are valid in compilation databases.
+        // An outside path is stale when it no longer exists (for example,
+        // after the project has been moved).
+        if (isOutsideProject) {
+          try {
+            const stat = await fs.stat(entryDir);
+            if (!stat.isDirectory()) {
+              hasStalePaths = true;
+              break;
+            }
+          } catch {
+            hasStalePaths = true;
+            break;
+          }
+        }
+      }
 
       if (hasStalePaths) {
         vscode.window.showWarningMessage(
