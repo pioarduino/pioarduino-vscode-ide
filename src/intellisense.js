@@ -260,8 +260,17 @@ export async function ensureCompileCommands(projectDir, observer, envDir) {
         // Normalize paths for comparison
         const entryDir = path.normalize(entry.directory);
         const currentDir = path.normalize(projectDir);
-        // If the entry directory doesn't start with the current project path, it's stale
-        return !entryDir.startsWith(currentDir);
+        // Use path.relative to check if entry is outside the project directory
+        // This ensures directory boundaries are enforced
+        const relativePath = path.relative(currentDir, entryDir);
+        // If relative path starts with '..', the entry is outside the project
+        const isOutsideProject = relativePath.startsWith('..') || path.isAbsolute(relativePath);
+        // On Windows, do case-insensitive comparison; on other platforms, case-sensitive
+        const pathsMatch = process.platform === 'win32'
+          ? entryDir.toLowerCase() === currentDir.toLowerCase()
+          : entryDir === currentDir;
+        // Stale if outside project or paths don't match (with platform-specific case handling)
+        return isOutsideProject && !pathsMatch;
       });
 
       if (hasStalePaths) {
@@ -275,8 +284,11 @@ export async function ensureCompileCommands(projectDir, observer, envDir) {
         );
       }
     } catch (err) {
-      // If we can't read or parse the database, just continue using it
+      // If we can't read or parse the database, warn the user and log for diagnosis
       console.warn('Failed to validate database freshness:', err);
+      vscode.window.showWarningMessage(
+        'pioarduino: The compile_commands.json database could not be read or is invalid. IntelliSense may be incorrect. Please rebuild the index manually.',
+      );
     }
     return; // processed copy exists and no source DB was found
   }

@@ -227,6 +227,8 @@ const window = {
   visibleTextEditors: [],
   showTextDocument: jest.fn(),
   showErrorMessage: jest.fn(),
+  showInformationMessage: jest.fn(),
+  showWarningMessage: jest.fn(),
   showQuickPick: jest.fn(),
   showInputBox: jest.fn(),
   withProgress: jest.fn(async (options, task) => {

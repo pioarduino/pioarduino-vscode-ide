@@ -588,6 +588,11 @@ describe('Database freshness validation', () => {
     vscode.window.showWarningMessage = jest.fn();
     console.info = jest.fn();
     console.warn = jest.fn();
+    // Mock process.platform for non-Windows by default
+    Object.defineProperty(process, 'platform', {
+      value: 'darwin',
+      writable: true,
+    });
   });
 
   it('detects stale database with old project path', async () => {
@@ -643,7 +648,7 @@ describe('Database freshness validation', () => {
     );
   });
 
-  it('handles JSON parse errors gracefully', async () => {
+  it('handles JSON parse errors with user-facing warning', async () => {
     setBackend('clangd');
     setExtensionInstalled(true);
 
@@ -661,6 +666,90 @@ describe('Database freshness validation', () => {
       expect.stringContaining('Failed to validate'),
       expect.any(Error),
     );
+    expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
+      expect.stringContaining('could not be read or is invalid'),
+    );
+  });
+
+  it('treats paths within project as current (path.relative)', async () => {
+    setBackend('clangd');
+    setExtensionInstalled(true);
+
+    const validDb = [
+      {
+        directory: '/workspace/project/src',
+        file: '/workspace/project/src/main.cpp',
+      },
+    ];
+
+    fsMock.stat.mockImplementation((path) => {
+      if (path === clangdPath) {
+        return { mtimeMs: Date.now() };
+      }
+      throw new Error('File not found');
+    });
+    fsMock.readFile.mockResolvedValue(JSON.stringify(validDb));
+
+    await ensureCompileCommands(projectDir, mockObserver, undefined);
+
+    expect(vscode.window.showWarningMessage).not.toHaveBeenCalled();
+  });
+
+  it('treats sibling paths as stale (path.relative)', async () => {
+    setBackend('clangd');
+    setExtensionInstalled(true);
+
+    const siblingDb = [
+      {
+        directory: '/workspace/sibling-project',
+        file: '/workspace/sibling-project/src/main.cpp',
+      },
+    ];
+
+    fsMock.stat.mockImplementation((path) => {
+      if (path === clangdPath) {
+        return { mtimeMs: Date.now() };
+      }
+      throw new Error('File not found');
+    });
+    fsMock.readFile.mockResolvedValue(JSON.stringify(siblingDb));
+
+    await ensureCompileCommands(projectDir, mockObserver, undefined);
+
+    expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
+      expect.stringContaining('stale'),
+    );
+  });
+
+  it('uses case-insensitive comparison on Windows', async () => {
+    setBackend('clangd');
+    setExtensionInstalled(true);
+    Object.defineProperty(process, 'platform', {
+      value: 'win32',
+      writable: true,
+    });
+
+    const windowsDb = [
+      {
+        directory: 'C:\\Workspace\\Project',
+        file: 'C:\\Workspace\\Project\\src\\main.cpp',
+      },
+    ];
+
+    const windowsClangdPath = 'c:\\workspace\\project\\.cache\\clangd\\compile_commands.json';
+    fsMock.stat.mockImplementation((path) => {
+      if (path === windowsClangdPath) {
+        return { mtimeMs: Date.now() };
+      }
+      throw new Error('File not found');
+    });
+    fsMock.readFile.mockResolvedValue(JSON.stringify(windowsDb));
+
+    // Use the same path with different case
+    const windowsProjectDir = 'c:\\workspace\\project';
+    await ensureCompileCommands(windowsProjectDir, mockObserver, undefined);
+
+    // Should not warn because Windows comparison is case-insensitive
     expect(vscode.window.showWarningMessage).not.toHaveBeenCalled();
   });
 });
