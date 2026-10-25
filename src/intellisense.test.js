@@ -847,7 +847,12 @@ describe('Database freshness validation', () => {
     });
 
     const windowsProjectDir = 'c:\\workspace\\project';
-    const windowsClangdPath = path.join(windowsProjectDir, '.cache', 'clangd', 'compile_commands.json');
+    const windowsClangdPath = path.join(
+      windowsProjectDir,
+      '.cache',
+      'clangd',
+      'compile_commands.json',
+    );
 
     const windowsDb = [
       {
