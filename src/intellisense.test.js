@@ -13,6 +13,7 @@ import {
   disposeAllIdfWatchers,
   disposeClangdCcWatcher,
   disposeIdfCcWatcher,
+  ensureCompileCommands,
   getActiveBackend,
   getActiveBackendId,
   getActiveConflictedExtensionIds,
@@ -570,5 +571,96 @@ describe('warnIfBackendMissing', () => {
     vscode.extensions.getExtension.mockReturnValue(undefined);
     warnIfBackendMissing();
     expect(vscode.window.showWarningMessage).toHaveBeenCalled();
+  });
+});
+
+// ─── Database freshness validation ─────────────────────────────────────────────
+
+describe('Database freshness validation', () => {
+  const projectDir = '/workspace/project';
+  const clangdPath = '/workspace/project/.cache/clangd/compile_commands.json';
+  const mockObserver = {
+    rebuildIndex: jest.fn(),
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    vscode.window.showWarningMessage = jest.fn();
+    console.info = jest.fn();
+    console.warn = jest.fn();
+  });
+
+  it('detects stale database with old project path', async () => {
+    setBackend('clangd');
+    setExtensionInstalled(true);
+
+    const staleDb = [
+      {
+        directory: '/old/project/path',
+        file: '/old/project/path/src/main.cpp',
+      },
+    ];
+
+    fsMock.stat.mockImplementation((path) => {
+      if (path === clangdPath) {
+        return { mtimeMs: Date.now() };
+      }
+      throw new Error('File not found');
+    });
+    fsMock.readFile.mockResolvedValue(JSON.stringify(staleDb));
+
+    await ensureCompileCommands(projectDir, mockObserver, undefined);
+
+    expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
+      expect.stringContaining('stale'),
+    );
+  });
+
+  it('does not warn when database paths match current project', async () => {
+    setBackend('clangd');
+    setExtensionInstalled(true);
+
+    const freshDb = [
+      {
+        directory: '/workspace/project',
+        file: '/workspace/project/src/main.cpp',
+      },
+    ];
+
+    fsMock.stat.mockImplementation((path) => {
+      if (path === clangdPath) {
+        return { mtimeMs: Date.now() };
+      }
+      throw new Error('File not found');
+    });
+    fsMock.readFile.mockResolvedValue(JSON.stringify(freshDb));
+
+    await ensureCompileCommands(projectDir, mockObserver, undefined);
+
+    expect(vscode.window.showWarningMessage).not.toHaveBeenCalled();
+    expect(console.info).toHaveBeenCalledWith(
+      expect.stringContaining('Reusing existing'),
+    );
+  });
+
+  it('handles JSON parse errors gracefully', async () => {
+    setBackend('clangd');
+    setExtensionInstalled(true);
+
+    fsMock.stat.mockImplementation((path) => {
+      if (path === clangdPath) {
+        return { mtimeMs: Date.now() };
+      }
+      throw new Error('File not found');
+    });
+    fsMock.readFile.mockResolvedValue('invalid json');
+
+    await ensureCompileCommands(projectDir, mockObserver, undefined);
+
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to validate'),
+      expect.any(Error),
+    );
+    expect(vscode.window.showWarningMessage).not.toHaveBeenCalled();
   });
 });

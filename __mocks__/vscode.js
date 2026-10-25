@@ -44,6 +44,23 @@ class ThemeIcon {
 }
 ThemeIcon.Folder = new ThemeIcon('folder');
 
+class EventEmitter {
+  constructor() {
+    this._listeners = [];
+  }
+  event = () => {
+    return {
+      subscribe: (listener) => {
+        this._listeners.push(listener);
+        return { dispose: () => {} };
+      },
+    };
+  };
+  fire(data) {
+    this._listeners.forEach((listener) => listener(data));
+  }
+}
+
 const TreeItemCollapsibleState = {
   None: 0,
   Collapsed: 1,
@@ -195,8 +212,14 @@ const workspace = {
   onDidOpenTextDocument: jest.fn(() => ({ dispose: jest.fn() })),
   onDidSaveTextDocument: jest.fn(() => ({ dispose: jest.fn() })),
   onDidChangeWorkspaceFolders: jest.fn(() => ({ dispose: jest.fn() })),
+  onDidChangeConfiguration: jest.fn(() => ({ dispose: jest.fn() })),
   createFileSystemWatcher: jest.fn(() => ({ dispose: jest.fn() })),
   getWorkspaceFolder: jest.fn(),
+  getConfiguration: jest.fn(() => ({
+    get: jest.fn(),
+    inspect: jest.fn(),
+    update: jest.fn(),
+  })),
 };
 
 const window = {
@@ -250,6 +273,7 @@ module.exports = {
   InlineCompletionItem,
   Diagnostic,
   TestMessage,
+  EventEmitter,
   languages,
   workspace,
   window,
