@@ -256,36 +256,23 @@ export async function ensureCompileCommands(projectDir, observer, envDir) {
       let hasStalePaths = false;
       for (const entry of db) {
         if (!entry.directory) {
-          continue;
+          hasStalePaths = true;
+          break;
         }
         // Use platform-specific path module for proper case handling
         const pathModule = process.platform === 'win32' ? path.win32 : path;
-        // Normalize paths for comparison
+        // Normalize paths with the platform-specific path module
         const entryDir = pathModule.normalize(entry.directory);
-        const currentDir = pathModule.normalize(projectDir);
-        // Use path.relative to check if entry is outside the project directory
-        // This ensures directory boundaries are enforced
-        const relativePath = pathModule.relative(currentDir, entryDir);
-        // If relative path is exact parent or starts with '../' (not '..' followed by other chars),
-        // the entry is outside the project. Also check for absolute paths.
-        const isOutsideProject =
-          relativePath === '..' ||
-          relativePath.startsWith(`..${pathModule.sep}`) ||
-          pathModule.isAbsolute(relativePath);
-        // External working directories are valid in compilation databases.
-        // An outside path is stale when it no longer exists (for example,
-        // after the project has been moved).
-        if (isOutsideProject) {
-          try {
-            const stat = await fs.stat(entryDir);
-            if (!stat.isDirectory()) {
-              hasStalePaths = true;
-              break;
-            }
-          } catch {
+        // Compilation working directories must exist, including project subdirectories.
+        try {
+          const stat = await fs.stat(entryDir);
+          if (!stat.isDirectory()) {
             hasStalePaths = true;
             break;
           }
+        } catch {
+          hasStalePaths = true;
+          break;
         }
       }
 
