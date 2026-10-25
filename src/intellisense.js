@@ -257,24 +257,22 @@ export async function ensureCompileCommands(projectDir, observer, envDir) {
         if (!entry.directory) {
           return false;
         }
+        // Use platform-specific path module for proper case handling
+        const pathModule = process.platform === 'win32' ? path.win32 : path;
         // Normalize paths for comparison
-        const entryDir = path.normalize(entry.directory);
-        const currentDir = path.normalize(projectDir);
+        const entryDir = pathModule.normalize(entry.directory);
+        const currentDir = pathModule.normalize(projectDir);
         // Use path.relative to check if entry is outside the project directory
         // This ensures directory boundaries are enforced
-        const relativePath = path.relative(currentDir, entryDir);
+        const relativePath = pathModule.relative(currentDir, entryDir);
         // If relative path is exact parent or starts with '../' (not '..' followed by other chars),
         // the entry is outside the project. Also check for absolute paths.
         const isOutsideProject =
           relativePath === '..' ||
-          relativePath.startsWith(`..${path.sep}`) ||
-          path.isAbsolute(relativePath);
-        // On Windows, do case-insensitive comparison; on other platforms, case-sensitive
-        const pathsMatch = process.platform === 'win32'
-          ? entryDir.toLowerCase() === currentDir.toLowerCase()
-          : entryDir === currentDir;
-        // Stale if outside project or paths don't match (with platform-specific case handling)
-        return isOutsideProject && !pathsMatch;
+          relativePath.startsWith(`..${pathModule.sep}`) ||
+          pathModule.isAbsolute(relativePath);
+        // Stale if outside project (platform-specific case handling is built into pathModule)
+        return isOutsideProject;
       });
 
       if (hasStalePaths) {
