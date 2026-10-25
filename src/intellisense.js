@@ -248,6 +248,36 @@ export async function ensureCompileCommands(projectDir, observer, envDir) {
     return;
   }
   if (clangdStat) {
+    // Check if the database is stale (e.g., project moved to a different location)
+    try {
+      const dbContent = await fs.readFile(clangdPath, 'utf8');
+      const db = JSON.parse(dbContent);
+      // Check if any entry has a directory that doesn't match the current project path
+      const hasStalePaths = db.some((entry) => {
+        if (!entry.directory) {
+          return false;
+        }
+        // Normalize paths for comparison
+        const entryDir = path.normalize(entry.directory);
+        const currentDir = path.normalize(projectDir);
+        // If the entry directory doesn't start with the current project path, it's stale
+        return !entryDir.startsWith(currentDir);
+      });
+
+      if (hasStalePaths) {
+        vscode.window.showWarningMessage(
+          'pioarduino: The compile_commands.json database appears to be stale (paths may be outdated). IntelliSense may be incorrect. Please rebuild the index manually.',
+        );
+      } else {
+        // Log that we're reusing an existing database
+        console.info(
+          `pioarduino: Reusing existing compile_commands.json from ${clangdPath}. If IntelliSense seems incorrect, run "PlatformIO: Rebuild IntelliSense Index".`,
+        );
+      }
+    } catch (err) {
+      // If we can't read or parse the database, just continue using it
+      console.warn('Failed to validate database freshness:', err);
+    }
     return; // processed copy exists and no source DB was found
   }
   // No compile_commands.json at all – rebuild from scratch.
