@@ -19,10 +19,10 @@ jobs:
           rm -rf package-lock.json
           rm -rf dist
           rm -rf *.vsix
-      - name: install node v20
+      - name: install node v25
         uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 25
       - name: Install NPM
         run: npm install
       - name: Run tests
@@ -45,10 +45,10 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: pioarduino-ide-vsix
-      - name: install node v20
+      - name: install node v25
         uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 25
       - name: Publish to VS Code Marketplace
         run: npx @vscode/vsce publish --packagePath *.vsix -p ${{ secrets.VSCE_TOKEN }}
         env:
