@@ -1088,7 +1088,7 @@
     "fs-plus": "~3.1.1",
     "pioarduino-node-helpers": "~12.7.0",
     "pioarduino-vscode-debug": "~1.2.0",
-    "tar": "^7.5.13"
+    "tar": "^7.5.22"
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",
