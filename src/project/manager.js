@@ -126,6 +126,18 @@ export default class ProjectManager {
       },
     });
 
+    // Set up project-scoped settings callback
+    this._pool.setProjectSettingsCallback((projectDir) => ({
+      autoPreloadEnvTasks: extension.getProjectConfiguration(
+        'autoPreloadEnvTasks',
+        projectDir,
+      ),
+      autoRebuild: extension.getProjectConfiguration(
+        'autoRebuildAutocompleteIndex',
+        projectDir,
+      ),
+    }));
+
     this.subscriptions = [
       this._pool,
       this._logOutputChannel,

@@ -253,16 +253,28 @@ export async function ensureCompileCommands(projectDir, observer, envDir) {
       const dbContent = await fs.readFile(clangdPath, 'utf8');
       const db = JSON.parse(dbContent);
       // Check if any entry has a directory that doesn't match the current project path
-      const hasStalePaths = db.some((entry) => {
+      let hasStalePaths = false;
+      for (const entry of db) {
         if (!entry.directory) {
-          return false;
+          hasStalePaths = true;
+          break;
         }
-        // Normalize paths for comparison
-        const entryDir = path.normalize(entry.directory);
-        const currentDir = path.normalize(projectDir);
-        // If the entry directory doesn't start with the current project path, it's stale
-        return !entryDir.startsWith(currentDir);
-      });
+        // Use platform-specific path module for proper case handling
+        const pathModule = process.platform === 'win32' ? path.win32 : path;
+        // Normalize paths with the platform-specific path module
+        const entryDir = pathModule.normalize(entry.directory);
+        // Compilation working directories must exist, including project subdirectories.
+        try {
+          const stat = await fs.stat(entryDir);
+          if (!stat.isDirectory()) {
+            hasStalePaths = true;
+            break;
+          }
+        } catch {
+          hasStalePaths = true;
+          break;
+        }
+      }
 
       if (hasStalePaths) {
         vscode.window.showWarningMessage(
@@ -275,8 +287,11 @@ export async function ensureCompileCommands(projectDir, observer, envDir) {
         );
       }
     } catch (err) {
-      // If we can't read or parse the database, just continue using it
+      // If we can't read or parse the database, warn the user and log for diagnosis
       console.warn('Failed to validate database freshness:', err);
+      vscode.window.showWarningMessage(
+        'pioarduino: The compile_commands.json database could not be read or is invalid. IntelliSense may be incorrect. Please rebuild the index manually.',
+      );
     }
     return; // processed copy exists and no source DB was found
   }

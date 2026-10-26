@@ -44,6 +44,29 @@ class ThemeIcon {
 }
 ThemeIcon.Folder = new ThemeIcon('folder');
 
+class EventEmitter {
+  constructor() {
+    this._listeners = [];
+  }
+  event = (listener) => {
+    this._listeners.push(listener);
+    return {
+      dispose: () => {
+        const index = this._listeners.indexOf(listener);
+        if (index !== -1) {
+          this._listeners.splice(index, 1);
+        }
+      },
+    };
+  };
+  fire(data) {
+    this._listeners.forEach((listener) => listener(data));
+  }
+  dispose() {
+    this._listeners = [];
+  }
+}
+
 const TreeItemCollapsibleState = {
   None: 0,
   Collapsed: 1,
@@ -195,8 +218,14 @@ const workspace = {
   onDidOpenTextDocument: jest.fn(() => ({ dispose: jest.fn() })),
   onDidSaveTextDocument: jest.fn(() => ({ dispose: jest.fn() })),
   onDidChangeWorkspaceFolders: jest.fn(() => ({ dispose: jest.fn() })),
+  onDidChangeConfiguration: jest.fn(() => ({ dispose: jest.fn() })),
   createFileSystemWatcher: jest.fn(() => ({ dispose: jest.fn() })),
   getWorkspaceFolder: jest.fn(),
+  getConfiguration: jest.fn(() => ({
+    get: jest.fn(),
+    inspect: jest.fn(),
+    update: jest.fn(),
+  })),
 };
 
 const window = {
@@ -204,6 +233,8 @@ const window = {
   visibleTextEditors: [],
   showTextDocument: jest.fn(),
   showErrorMessage: jest.fn(),
+  showInformationMessage: jest.fn(),
+  showWarningMessage: jest.fn(),
   showQuickPick: jest.fn(),
   showInputBox: jest.fn(),
   withProgress: jest.fn(async (options, task) => {
@@ -250,6 +281,7 @@ module.exports = {
   InlineCompletionItem,
   Diagnostic,
   TestMessage,
+  EventEmitter,
   languages,
   workspace,
   window,
