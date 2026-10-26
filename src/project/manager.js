@@ -38,6 +38,8 @@ export default class ProjectManager {
   constructor() {
     this._taskManager = undefined;
     this._sbEnvSwitcher = undefined;
+    this._switchPromise = Promise.resolve();
+    this._disposed = false;
     this._logOutputChannel = vscode.window.createOutputChannel(
       'pioarduino: Project Configuration',
     );
@@ -158,13 +160,13 @@ export default class ProjectManager {
         this._pool.getActiveObserver().rebuildIndex({ force: true }),
       ),
       vscode.commands.registerCommand('platformio-ide.refreshProjectTasks', () =>
-        this._taskManager.refresh({ force: true }),
+        this._taskManager?.refresh({ force: true }),
       ),
       vscode.commands.registerCommand('platformio-ide.toggleMultiEnvProjectTasks', () =>
-        this._taskManager.toggleMultiEnvExplorer(),
+        this._taskManager?.toggleMultiEnvExplorer(),
       ),
       vscode.commands.registerCommand('platformio-ide._runProjectTask', (task) =>
-        this._taskManager.runTask(task),
+        this._taskManager?.runTask(task),
       ),
       vscode.commands.registerCommand(
         'platformio-ide.activeEnvironment',
@@ -179,9 +181,18 @@ export default class ProjectManager {
   }
 
   dispose() {
+    this._disposed = true;
+    if (this._configChangedTimeout) {
+      clearTimeout(this._configChangedTimeout);
+      this._configChangedTimeout = undefined;
+    }
     this.disposeInternals();
-    disposeSubscriptions(this.internalSubscriptions);
     disposeSubscriptions(this.subscriptions);
+  }
+
+  disposeInternals() {
+    disposeSubscriptions(this.internalSubscriptions);
+    this._taskManager = undefined;
   }
 
   findActiveProjectDir() {
@@ -226,7 +237,20 @@ export default class ProjectManager {
     );
   }
 
-  async switchToProject(projectDir, options = {}) {
+  switchToProject(projectDir, options = {}) {
+    const switchPromise = this._switchPromise.then(() =>
+      this._switchToProject(projectDir, options),
+    );
+    this._switchPromise = switchPromise.catch((err) => {
+      console.error(err);
+    });
+    return this._switchPromise;
+  }
+
+  async _switchToProject(projectDir, options = {}) {
+    if (this._disposed) {
+      return;
+    }
     if (!projectDir) {
       console.error('switchProject => Please provide project folder');
       return;
@@ -257,6 +281,9 @@ export default class ProjectManager {
     } catch (err) {
       console.error(err);
     }
+    if (this._disposed) {
+      return;
+    }
 
     if ('env' in options) {
       await observer.switchProjectEnv(options.env);
@@ -264,6 +291,9 @@ export default class ProjectManager {
       await observer.switchProjectEnv(
         projectHelpers.getProjectItemState(projectDir, 'selectedEnv'),
       );
+    }
+    if (this._disposed) {
+      return;
     }
 
     // ignore active project and & env
@@ -273,17 +303,23 @@ export default class ProjectManager {
       currentProjectDir !== projectDir ||
       currentEnv !== observer.getSelectedEnv()
     ) {
-      disposeSubscriptions(this.internalSubscriptions);
+      this.disposeInternals();
       if (currentProjectDir && currentProjectDir !== projectDir) {
         invalidateIdfCache(currentProjectDir);
         disposeIdfCcWatcher(currentProjectDir);
         disposeClangdCcWatcher(currentProjectDir);
       }
       const selectedEnv = await observer.revealActiveEnvironment();
+      if (this._disposed) {
+        return;
+      }
       const selectedEnvDir = selectedEnv
         ? path.join(projectDir, '.pio', 'build', selectedEnv)
         : undefined;
       this._activeProjectIsIdf = await isIdfProject(observer, selectedEnvDir);
+      if (this._disposed) {
+        return;
+      }
 
       // For IDF projects, watch the CMake-generated compile_commands.json so
       // fixupCompileCommands is triggered automatically when the build completes.
@@ -314,20 +350,31 @@ export default class ProjectManager {
       });
 
       await this._pool.switch(projectDir);
+      if (this._disposed) {
+        return;
+      }
       const activeObs = this._pool.getActiveObserver();
       const activeEnv = activeObs
         ? await activeObs.revealActiveEnvironment()
         : undefined;
+      if (this._disposed) {
+        return;
+      }
       const envDir = activeEnv
         ? path.join(projectDir, '.pio', 'build', activeEnv)
         : undefined;
       await ensureCompileCommands(projectDir, activeObs, envDir);
+      if (this._disposed) {
+        return;
+      }
       await ensureClangdArgs(projectDir);
+      if (this._disposed) {
+        return;
+      }
       this._taskManager = new ProjectTaskManager(projectDir, observer);
-      this.internalSubscriptions.push(
-        this._taskManager,
-        new ProjectTestManager(projectDir),
-      );
+      this.internalSubscriptions.push(this._taskManager);
+      const testManager = new ProjectTestManager(projectDir);
+      this.internalSubscriptions.push(testManager);
 
       // open "platformio.ini" if no visible editors
       if (
