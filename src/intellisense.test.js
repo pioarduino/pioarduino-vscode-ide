@@ -633,11 +633,11 @@ describe('Database freshness validation', () => {
       },
     ];
 
-    fsMock.stat.mockImplementation((path) => {
-      if (path === clangdPath) {
+    fsMock.stat.mockImplementation((filePath) => {
+      if (filePath === clangdPath) {
         return { mtimeMs: Date.now() };
       }
-      if (path === '/workspace/shared-build') {
+      if (filePath === path.join('/workspace', 'shared-build')) {
         return { isDirectory: () => true };
       }
       throw new Error('File not found');
@@ -716,11 +716,11 @@ describe('Database freshness validation', () => {
       },
     ];
 
-    fsMock.stat.mockImplementation((path) => {
-      if (path === clangdPath) {
+    fsMock.stat.mockImplementation((filePath) => {
+      if (filePath === clangdPath) {
         return { mtimeMs: Date.now() };
       }
-      if (path === '/workspace/project/src') {
+      if (filePath === path.join(projectDir, 'src')) {
         return { isDirectory: () => true };
       }
       throw new Error('File not found');
