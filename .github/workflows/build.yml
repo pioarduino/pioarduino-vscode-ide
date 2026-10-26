@@ -12,6 +12,9 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
     steps:
       - uses: actions/checkout@v6
       - name: Remove old files and folders
@@ -19,17 +22,19 @@ jobs:
           rm -rf package-lock.json
           rm -rf dist
           rm -rf *.vsix
-      - name: install node v20
+      - name: install node v24
         uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 24
       - name: Install NPM
         run: npm install
       - name: Run tests
         run: node src/shellTokenize.test.js
       - name: Compile vsix package
         run: |
-          npm run build
+          npm run build:webpack
+          npm prune --omit=dev
+          npx --yes --package=@vscode/vsce@~3.9.1 vsce package
       - name: Upload vsix artifact
         uses: actions/upload-artifact@v7
         with:
@@ -45,10 +50,10 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: pioarduino-ide-vsix
-      - name: install node v20
+      - name: install node v24
         uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 24
       - name: Publish to VS Code Marketplace
         run: npx @vscode/vsce publish --packagePath *.vsix -p ${{ secrets.VSCE_TOKEN }}
         env:

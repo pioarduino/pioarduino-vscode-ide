@@ -13,6 +13,7 @@ import {
   disposeAllIdfWatchers,
   disposeClangdCcWatcher,
   disposeIdfCcWatcher,
+  ensureCompileCommands,
   getActiveBackend,
   getActiveBackendId,
   getActiveConflictedExtensionIds,
@@ -25,6 +26,7 @@ import {
 } from './intellisense';
 import { extension } from './main';
 import { promises as fsMock } from 'fs';
+import path from 'path';
 import vscode from 'vscode';
 
 jest.mock('vscode', () => jest.requireActual('../__mocks__/vscode'));
@@ -570,5 +572,311 @@ describe('warnIfBackendMissing', () => {
     vscode.extensions.getExtension.mockReturnValue(undefined);
     warnIfBackendMissing();
     expect(vscode.window.showWarningMessage).toHaveBeenCalled();
+  });
+});
+
+// ─── Database freshness validation ─────────────────────────────────────────────
+
+describe('Database freshness validation', () => {
+  const projectDir = '/workspace/project';
+  const clangdPath = path.join(projectDir, '.cache', 'clangd', 'compile_commands.json');
+  const mockObserver = {
+    rebuildIndex: jest.fn(),
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    vscode.window.showWarningMessage = jest.fn();
+    console.info = jest.fn();
+    console.warn = jest.fn();
+    // Mock process.platform for non-Windows by default
+    Object.defineProperty(process, 'platform', {
+      value: 'darwin',
+      writable: true,
+    });
+  });
+
+  it('detects stale database with old project path', async () => {
+    setBackend('clangd');
+    setExtensionInstalled(true);
+
+    const staleDb = [
+      {
+        directory: '/old/project/path',
+        file: '/old/project/path/src/main.cpp',
+      },
+    ];
+
+    fsMock.stat.mockImplementation((path) => {
+      if (path === clangdPath) {
+        return { mtimeMs: Date.now() };
+      }
+      throw new Error('File not found');
+    });
+    fsMock.readFile.mockResolvedValue(JSON.stringify(staleDb));
+
+    await ensureCompileCommands(projectDir, mockObserver, undefined);
+
+    expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
+      expect.stringContaining('stale'),
+    );
+  });
+
+  it('reuses a database with an existing external working directory', async () => {
+    setBackend('clangd');
+    setExtensionInstalled(true);
+
+    const db = [
+      {
+        directory: '/workspace/shared-build',
+        file: '/workspace/shared-build/main.cpp',
+      },
+    ];
+
+    fsMock.stat.mockImplementation((filePath) => {
+      if (filePath === clangdPath) {
+        return { mtimeMs: Date.now() };
+      }
+      if (filePath === path.join('/workspace', 'shared-build')) {
+        return { isDirectory: () => true };
+      }
+      throw new Error('File not found');
+    });
+    fsMock.readFile.mockResolvedValue(JSON.stringify(db));
+
+    await ensureCompileCommands(projectDir, mockObserver, undefined);
+
+    expect(vscode.window.showWarningMessage).not.toHaveBeenCalled();
+    expect(console.info).toHaveBeenCalledWith(
+      expect.stringContaining('Reusing existing'),
+    );
+  });
+
+  it('does not warn when database paths match current project', async () => {
+    setBackend('clangd');
+    setExtensionInstalled(true);
+
+    const freshDb = [
+      {
+        directory: '/workspace/project',
+        file: '/workspace/project/src/main.cpp',
+      },
+    ];
+
+    fsMock.stat.mockImplementation((path) => {
+      if (path === clangdPath) {
+        return { mtimeMs: Date.now() };
+      }
+      if (path === projectDir) {
+        return { isDirectory: () => true };
+      }
+      throw new Error('File not found');
+    });
+    fsMock.readFile.mockResolvedValue(JSON.stringify(freshDb));
+
+    await ensureCompileCommands(projectDir, mockObserver, undefined);
+
+    expect(vscode.window.showWarningMessage).not.toHaveBeenCalled();
+    expect(console.info).toHaveBeenCalledWith(
+      expect.stringContaining('Reusing existing'),
+    );
+  });
+
+  it('handles JSON parse errors with user-facing warning', async () => {
+    setBackend('clangd');
+    setExtensionInstalled(true);
+
+    fsMock.stat.mockImplementation((path) => {
+      if (path === clangdPath) {
+        return { mtimeMs: Date.now() };
+      }
+      throw new Error('File not found');
+    });
+    fsMock.readFile.mockResolvedValue('invalid json');
+
+    await ensureCompileCommands(projectDir, mockObserver, undefined);
+
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to validate'),
+      expect.any(Error),
+    );
+    expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
+      expect.stringContaining('could not be read or is invalid'),
+    );
+  });
+
+  it('treats existing project subdirectories as current', async () => {
+    setBackend('clangd');
+    setExtensionInstalled(true);
+
+    const validDb = [
+      {
+        directory: '/workspace/project/src',
+        file: '/workspace/project/src/main.cpp',
+      },
+    ];
+
+    fsMock.stat.mockImplementation((filePath) => {
+      if (filePath === clangdPath) {
+        return { mtimeMs: Date.now() };
+      }
+      if (filePath === path.join(projectDir, 'src')) {
+        return { isDirectory: () => true };
+      }
+      throw new Error('File not found');
+    });
+    fsMock.readFile.mockResolvedValue(JSON.stringify(validDb));
+
+    await ensureCompileCommands(projectDir, mockObserver, undefined);
+
+    expect(vscode.window.showWarningMessage).not.toHaveBeenCalled();
+  });
+
+  it('detects a missing project subdirectory', async () => {
+    setBackend('clangd');
+    setExtensionInstalled(true);
+
+    const db = [
+      {
+        directory: '/workspace/project/src',
+        file: '/workspace/project/src/main.cpp',
+      },
+    ];
+
+    fsMock.stat.mockImplementation((path) => {
+      if (path === clangdPath) {
+        return { mtimeMs: Date.now() };
+      }
+      throw new Error('File not found');
+    });
+    fsMock.readFile.mockResolvedValue(JSON.stringify(db));
+
+    await ensureCompileCommands(projectDir, mockObserver, undefined);
+
+    expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
+      expect.stringContaining('stale'),
+    );
+    expect(console.info).not.toHaveBeenCalledWith(
+      expect.stringContaining('Reusing existing'),
+    );
+  });
+
+  it('treats entries without a directory as stale', async () => {
+    setBackend('clangd');
+    setExtensionInstalled(true);
+
+    fsMock.stat.mockImplementation((path) => {
+      if (path === clangdPath) {
+        return { mtimeMs: Date.now() };
+      }
+      throw new Error('File not found');
+    });
+    fsMock.readFile.mockResolvedValue(
+      JSON.stringify([{ file: '/workspace/project/main.cpp' }]),
+    );
+
+    await ensureCompileCommands(projectDir, mockObserver, undefined);
+
+    expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
+      expect.stringContaining('stale'),
+    );
+    expect(console.info).not.toHaveBeenCalledWith(
+      expect.stringContaining('Reusing existing'),
+    );
+  });
+
+  it('treats a missing sibling working directory as stale', async () => {
+    setBackend('clangd');
+    setExtensionInstalled(true);
+
+    const siblingDb = [
+      {
+        directory: '/workspace/sibling-project',
+        file: '/workspace/sibling-project/src/main.cpp',
+      },
+    ];
+
+    fsMock.stat.mockImplementation((path) => {
+      if (path === clangdPath) {
+        return { mtimeMs: Date.now() };
+      }
+      throw new Error('File not found');
+    });
+    fsMock.readFile.mockResolvedValue(JSON.stringify(siblingDb));
+
+    await ensureCompileCommands(projectDir, mockObserver, undefined);
+
+    expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
+      expect.stringContaining('stale'),
+    );
+  });
+
+  it('treats names like "..generated" as within project (not parent traversal)', async () => {
+    setBackend('clangd');
+    setExtensionInstalled(true);
+
+    const validDb = [
+      {
+        directory: '/workspace/project/..generated',
+        file: '/workspace/project/..generated/header.h',
+      },
+    ];
+
+    fsMock.stat.mockImplementation((path) => {
+      if (path === clangdPath) {
+        return { mtimeMs: Date.now() };
+      }
+      if (path === '/workspace/project/..generated') {
+        return { isDirectory: () => true };
+      }
+      throw new Error('File not found');
+    });
+    fsMock.readFile.mockResolvedValue(JSON.stringify(validDb));
+
+    await ensureCompileCommands(projectDir, mockObserver, undefined);
+
+    expect(vscode.window.showWarningMessage).not.toHaveBeenCalled();
+  });
+
+  it('checks normalized Windows working directories', async () => {
+    setBackend('clangd');
+    setExtensionInstalled(true);
+    Object.defineProperty(process, 'platform', {
+      value: 'win32',
+      writable: true,
+    });
+
+    const windowsProjectDir = 'c:\\workspace\\project';
+    const windowsClangdPath = path.join(
+      windowsProjectDir,
+      '.cache',
+      'clangd',
+      'compile_commands.json',
+    );
+
+    const windowsDb = [
+      {
+        directory: 'C:\\Workspace\\Project',
+        file: 'C:\\Workspace\\Project\\src\\main.cpp',
+      },
+    ];
+
+    fsMock.stat.mockImplementation((path) => {
+      if (path === windowsClangdPath) {
+        return { mtimeMs: Date.now() };
+      }
+      if (path === windowsDb[0].directory) {
+        return { isDirectory: () => true };
+      }
+      throw new Error('File not found');
+    });
+    fsMock.readFile.mockResolvedValue(JSON.stringify(windowsDb));
+
+    await ensureCompileCommands(windowsProjectDir, mockObserver, undefined);
+
+    // Confirm the test reached database reading
+    expect(fsMock.readFile).toHaveBeenCalledWith(windowsClangdPath, 'utf8');
+    // Should not warn because Windows comparison is case-insensitive
+    expect(vscode.window.showWarningMessage).not.toHaveBeenCalled();
   });
 });

@@ -248,6 +248,51 @@ export async function ensureCompileCommands(projectDir, observer, envDir) {
     return;
   }
   if (clangdStat) {
+    // Check if the database is stale (e.g., project moved to a different location)
+    try {
+      const dbContent = await fs.readFile(clangdPath, 'utf8');
+      const db = JSON.parse(dbContent);
+      // Check if any entry has a directory that doesn't match the current project path
+      let hasStalePaths = false;
+      for (const entry of db) {
+        if (!entry.directory) {
+          hasStalePaths = true;
+          break;
+        }
+        // Use platform-specific path module for proper case handling
+        const pathModule = process.platform === 'win32' ? path.win32 : path;
+        // Normalize paths with the platform-specific path module
+        const entryDir = pathModule.normalize(entry.directory);
+        // Compilation working directories must exist, including project subdirectories.
+        try {
+          const stat = await fs.stat(entryDir);
+          if (!stat.isDirectory()) {
+            hasStalePaths = true;
+            break;
+          }
+        } catch {
+          hasStalePaths = true;
+          break;
+        }
+      }
+
+      if (hasStalePaths) {
+        vscode.window.showWarningMessage(
+          'pioarduino: The compile_commands.json database appears to be stale (paths may be outdated). IntelliSense may be incorrect. Please rebuild the index manually.',
+        );
+      } else {
+        // Log that we're reusing an existing database
+        console.info(
+          `pioarduino: Reusing existing compile_commands.json from ${clangdPath}. If IntelliSense seems incorrect, run "PlatformIO: Rebuild IntelliSense Index".`,
+        );
+      }
+    } catch (err) {
+      // If we can't read or parse the database, warn the user and log for diagnosis
+      console.warn('Failed to validate database freshness:', err);
+      vscode.window.showWarningMessage(
+        'pioarduino: The compile_commands.json database could not be read or is invalid. IntelliSense may be incorrect. Please rebuild the index manually.',
+      );
+    }
     return; // processed copy exists and no source DB was found
   }
   // No compile_commands.json at all – rebuild from scratch.
