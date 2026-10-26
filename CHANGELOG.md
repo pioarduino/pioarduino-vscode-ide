@@ -4,6 +4,20 @@ All notable changes to the **pioarduino IDE** VSCode extension are documented in
 
 ---
 
+## [1.4.5] - 2026-10-26
+
+### ♻️ Refactor
+
+- **IntelliSense clangd** - Check for stale data
+
+### 🐛 Bug Fixes
+
+- **Project Task** - Build runs a previously selected project's task until the window is reloaded. Issue 114
+
+- **Lib_deps using symlink://** - Automatic IntelliSense index rebuild runs in a loop when lib_deps uses symlink://. Issue 105
+
+---
+
 ## [1.4.4] - 2026-05-11
 
 ### ♻️ Refactor
