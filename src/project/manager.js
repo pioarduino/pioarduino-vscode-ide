@@ -29,6 +29,7 @@ import ProjectTaskManager from './tasks';
 import ProjectTestManager from './tests';
 import { STATUS_BAR_PRIORITY_START } from '../constants';
 import { extension } from '../main';
+import fs from 'fs';
 import path from 'path';
 import vscode from 'vscode';
 
@@ -40,13 +41,18 @@ export default class ProjectManager {
     this._sbEnvSwitcher = undefined;
     this._switchPromise = Promise.resolve();
     this._disposed = false;
+    this._configChangedTimeouts = new Map();
+    this._configSnapshots = new Map();
     this._logOutputChannel = vscode.window.createOutputChannel(
       'pioarduino: Project Configuration',
     );
     this._configProvider = new ProjectConfigLanguageProvider();
-    this._configChangedTimeout = undefined;
     this._activeProjectIsIdf = false; // sync flag updated on project switch
     const activeBackend = getActiveBackend();
+
+    for (const projectDir of projectHelpers.getPIOProjectDirs()) {
+      this.rememberProjectConfig(path.join(projectDir, 'platformio.ini'));
+    }
 
     // Always use the SCons `pio run -t compiledb` flow, including for IDF.
     // CMake/Ninja's compile_commands.json is incomplete: SCons applies
@@ -93,18 +99,7 @@ export default class ProjectManager {
               ),
           ),
         onDidChangeProjectConfig: (configPath) => {
-          const projectDir = path.dirname(configPath);
-          if (this._configChangedTimeout) {
-            clearTimeout(this._configChangedTimeout);
-            this._configChangedTimeout = undefined;
-          }
-          this._configChangedTimeout = setTimeout(
-            () =>
-              this.switchToProject(projectDir, {
-                force: true,
-              }),
-            ProjectManager.CONFIG_CHANGED_DELAY * 1000,
-          );
+          this.handleProjectConfigChange(configPath);
         },
         onDidNotifyError: notifyError.bind(this),
         onDidRebuildIndex: async (projectDir) => {
@@ -114,9 +109,11 @@ export default class ProjectManager {
 
           await fixupCompileCommands(projectDir, envDir);
           await ensureClangdConfig(projectDir, obs);
-          await ensureClangdArgs(projectDir);
           await ensureLaunchJson(projectDir, env);
-          await notifyRescanBackend();
+          if (this._pool.getActiveProjectDir() === projectDir) {
+            await ensureClangdArgs(projectDir);
+            await notifyRescanBackend();
+          }
         },
       },
       settings: {
@@ -182,12 +179,62 @@ export default class ProjectManager {
 
   dispose() {
     this._disposed = true;
-    if (this._configChangedTimeout) {
-      clearTimeout(this._configChangedTimeout);
-      this._configChangedTimeout = undefined;
-    }
+    this._configChangedTimeouts.forEach((timeout) => clearTimeout(timeout));
+    this._configChangedTimeouts.clear();
+    this._configSnapshots.clear();
     this.disposeInternals();
     disposeSubscriptions(this.subscriptions);
+  }
+
+  rememberProjectConfig(configPath) {
+    try {
+      const { size, mtimeMs } = fs.statSync(configPath);
+      this._configSnapshots.set(path.resolve(configPath), { size, mtimeMs });
+    } catch (err) {
+      this._configSnapshots.delete(path.resolve(configPath));
+    }
+  }
+
+  handleProjectConfigChange(configPath) {
+    const configKey = path.resolve(configPath);
+    const previousSnapshot = this._configSnapshots.get(configKey);
+    let currentSnapshot;
+    try {
+      const { size, mtimeMs } = fs.statSync(configPath);
+      currentSnapshot = { size, mtimeMs };
+      this._configSnapshots.set(configKey, currentSnapshot);
+    } catch (err) {
+      this._configSnapshots.delete(configKey);
+    }
+
+    // VS Code can report a file change for last-access-time updates on some
+    // systems. Those events should not trigger a project reload.
+    if (
+      previousSnapshot &&
+      currentSnapshot &&
+      previousSnapshot.size === currentSnapshot.size &&
+      previousSnapshot.mtimeMs === currentSnapshot.mtimeMs
+    ) {
+      return;
+    }
+
+    const projectDir = path.dirname(configPath);
+    const existingTimeout = this._configChangedTimeouts.get(configKey);
+    if (existingTimeout) {
+      clearTimeout(existingTimeout);
+    }
+    const timeout = setTimeout(() => {
+      this._configChangedTimeouts.delete(configKey);
+      if (this._pool.getActiveProjectDir() !== projectDir) {
+        const observer = this._pool.getObserver(projectDir);
+        observer?.rebuildIndex({ force: true }).catch((err) =>
+          notifyError('Project configuration index refresh failed', err),
+        );
+        return;
+      }
+      this.switchToProject(projectDir, { force: true });
+    }, this.CONFIG_CHANGED_DELAY * 1000);
+    this._configChangedTimeouts.set(configKey, timeout);
   }
 
   disposeInternals() {
@@ -255,6 +302,7 @@ export default class ProjectManager {
       console.error('switchProject => Please provide project folder');
       return;
     }
+    this.rememberProjectConfig(path.join(projectDir, 'platformio.ini'));
     this._sbEnvSwitcher.text = '$(root-folder) Loading...';
 
     let currentProjectDir = undefined;
