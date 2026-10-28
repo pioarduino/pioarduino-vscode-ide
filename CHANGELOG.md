@@ -4,6 +4,14 @@ All notable changes to the **pioarduino IDE** VSCode extension are documented in
 
 ---
 
+## [1.4.6] - 2026-10-28
+
+### 🐛 Bug Fix
+
+- **Project configuration changes** - Changes in workspace in inactive project config does not switch project. Issue 117
+
+---
+
 ## [1.4.5] - 2026-10-26
 
 ### ♻️ Refactor
