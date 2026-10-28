@@ -43,6 +43,7 @@ export default class ProjectManager {
     this._disposed = false;
     this._configChangedTimeouts = new Map();
     this._configSnapshots = new Map();
+    this._pendingConfigIndexRebuilds = new Set();
     this._logOutputChannel = vscode.window.createOutputChannel(
       'pioarduino: Project Configuration',
     );
@@ -104,15 +105,19 @@ export default class ProjectManager {
         onDidNotifyError: notifyError.bind(this),
         onDidRebuildIndex: async (projectDir) => {
           const obs = this._pool.getObserver(projectDir);
-          const env = obs ? await obs.revealActiveEnvironment() : undefined;
-          const envDir = env ? path.join(projectDir, '.pio', 'build', env) : undefined;
+          try {
+            const env = obs ? await obs.revealActiveEnvironment() : undefined;
+            const envDir = env ? path.join(projectDir, '.pio', 'build', env) : undefined;
 
-          await fixupCompileCommands(projectDir, envDir);
-          await ensureClangdConfig(projectDir, obs);
-          await ensureLaunchJson(projectDir, env);
-          if (this._pool.getActiveProjectDir() === projectDir) {
-            await ensureClangdArgs(projectDir);
-            await notifyRescanBackend();
+            await fixupCompileCommands(projectDir, envDir);
+            await ensureClangdConfig(projectDir, obs);
+            await ensureLaunchJson(projectDir, env);
+            if (this._pool.getActiveProjectDir() === projectDir) {
+              await ensureClangdArgs(projectDir);
+              await notifyRescanBackend();
+            }
+          } finally {
+            this.flushPendingConfigIndexRebuild(projectDir, obs);
           }
         },
       },
@@ -182,17 +187,26 @@ export default class ProjectManager {
     this._configChangedTimeouts.forEach((timeout) => clearTimeout(timeout));
     this._configChangedTimeouts.clear();
     this._configSnapshots.clear();
+    this._pendingConfigIndexRebuilds.clear();
     this.disposeInternals();
     disposeSubscriptions(this.subscriptions);
   }
 
   rememberProjectConfig(configPath) {
     try {
-      const { size, mtimeMs } = fs.statSync(configPath);
-      this._configSnapshots.set(path.resolve(configPath), { size, mtimeMs });
+      this._configSnapshots.set(
+        path.resolve(configPath),
+        this.getProjectConfigSnapshot(configPath),
+      );
     } catch (err) {
       this._configSnapshots.delete(path.resolve(configPath));
     }
+  }
+
+  getProjectConfigSnapshot(configPath) {
+    const content = fs.readFileSync(configPath, 'utf8');
+    const { size, mtimeMs } = fs.statSync(configPath);
+    return { size, mtimeMs, content };
   }
 
   handleProjectConfigChange(configPath) {
@@ -200,8 +214,7 @@ export default class ProjectManager {
     const previousSnapshot = this._configSnapshots.get(configKey);
     let currentSnapshot;
     try {
-      const { size, mtimeMs } = fs.statSync(configPath);
-      currentSnapshot = { size, mtimeMs };
+      currentSnapshot = this.getProjectConfigSnapshot(configPath);
       this._configSnapshots.set(configKey, currentSnapshot);
     } catch (err) {
       this._configSnapshots.delete(configKey);
@@ -213,7 +226,8 @@ export default class ProjectManager {
       previousSnapshot &&
       currentSnapshot &&
       previousSnapshot.size === currentSnapshot.size &&
-      previousSnapshot.mtimeMs === currentSnapshot.mtimeMs
+      previousSnapshot.mtimeMs === currentSnapshot.mtimeMs &&
+      previousSnapshot.content === currentSnapshot.content
     ) {
       return;
     }
@@ -227,14 +241,36 @@ export default class ProjectManager {
       this._configChangedTimeouts.delete(configKey);
       if (this._pool.getActiveProjectDir() !== projectDir) {
         const observer = this._pool.getObserver(projectDir);
-        observer?.rebuildIndex({ force: true }).catch((err) =>
-          notifyError('Project configuration index refresh failed', err),
-        );
+        this.refreshProjectConfigIndex(projectDir, observer);
         return;
       }
       this.switchToProject(projectDir, { force: true });
     }, this.CONFIG_CHANGED_DELAY * 1000);
     this._configChangedTimeouts.set(configKey, timeout);
+  }
+
+  refreshProjectConfigIndex(projectDir, observer) {
+    if (!observer || this._disposed) {
+      return;
+    }
+    try {
+      const rebuildPromise = observer.rebuildIndex({ force: true });
+      if (!rebuildPromise) {
+        this._pendingConfigIndexRebuilds.add(projectDir);
+        return;
+      }
+      Promise.resolve(rebuildPromise).catch((err) =>
+        notifyError('Project configuration index refresh failed', err),
+      );
+    } catch (err) {
+      notifyError('Project configuration index refresh failed', err);
+    }
+  }
+
+  flushPendingConfigIndexRebuild(projectDir, observer) {
+    if (this._pendingConfigIndexRebuilds.delete(projectDir)) {
+      this.refreshProjectConfigIndex(projectDir, observer);
+    }
   }
 
   disposeInternals() {
