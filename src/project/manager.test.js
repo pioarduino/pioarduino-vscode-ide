@@ -74,9 +74,9 @@ describe('ProjectManager configuration change handling', () => {
 
     expect(manager.switchToProject).not.toHaveBeenCalled();
     expect(manager._pool.getObserver).toHaveBeenCalledWith(projectDir);
-    expect(manager._pool.getObserver.mock.results[0].value.rebuildIndex).toHaveBeenCalledWith(
-      { force: true },
-    );
+    expect(
+      manager._pool.getObserver.mock.results[0].value.rebuildIndex,
+    ).toHaveBeenCalledWith({ force: true });
   });
 
   it('queues an inactive index refresh when another rebuild is in progress', () => {

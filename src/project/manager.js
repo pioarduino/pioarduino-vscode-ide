@@ -107,7 +107,9 @@ export default class ProjectManager {
           const obs = this._pool.getObserver(projectDir);
           try {
             const env = obs ? await obs.revealActiveEnvironment() : undefined;
-            const envDir = env ? path.join(projectDir, '.pio', 'build', env) : undefined;
+            const envDir = env
+              ? path.join(projectDir, '.pio', 'build', env)
+              : undefined;
 
             await fixupCompileCommands(projectDir, envDir);
             await ensureClangdConfig(projectDir, obs);
@@ -141,6 +143,9 @@ export default class ProjectManager {
         projectDir,
       ),
     }));
+    for (const projectDir of projectHelpers.getPIOProjectDirs()) {
+      this._pool.getObserver(projectDir);
+    }
 
     this.subscriptions = [
       this._pool,
