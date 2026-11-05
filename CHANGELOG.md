@@ -3,6 +3,13 @@
 All notable changes to the **pioarduino IDE** VSCode extension are documented in this file.
 
 ---
+## [1.4.7] - 2026-11-05
+
+### 🐛 Security Update
+
+- **Update dep pioarduino-node-helpers** - Update npm WS v8.22.1 in helper
+
+---
 
 ## [1.4.6] - 2026-10-28
 
