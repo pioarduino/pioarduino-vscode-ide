@@ -58,3 +58,5 @@ jobs:
         run: npx @vscode/vsce publish --packagePath *.vsix -p ${{ secrets.VSCE_TOKEN }}
         env:
           VSCE_TOKEN: ${{ secrets.VSCE_TOKEN }}
+      - name: Publish to Open VSIX registry
+        run: npx ovsx publish $(find . -maxdepth 1 -name "*.vsix") --trusted-publishing
