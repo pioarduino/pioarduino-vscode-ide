@@ -3,6 +3,15 @@
 All notable changes to the **pioarduino IDE** VSCode extension are documented in this file.
 
 ---
+
+## [1.4.8] - 2026-11-22
+
+### 🐛 Bug Fix
+
+- **clangd support for non espressif Platforms** - ESP-specific paths are now added only when the compile-command database contains Espressif markers. Other projects no longer receive ESP-specific include paths.
+
+---
+
 ## [1.4.7] - 2026-11-05
 
 ### 🐛 Security Update
