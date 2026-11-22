@@ -311,6 +311,32 @@ export async function ensureCompileCommands(projectDir, observer, envDir) {
  *     so clangd can match them (it uses directory proximity heuristics).
  */
 /**
+ * Detect whether the compile_commands.json entries belong to an Espressif
+ * project by looking for ESP-specific markers in the recorded arguments:
+ * framework package names, ESP toolchain prefixes, IDF defines, etc.
+ *
+ * Used to gate ESP-only include injections (Arduino core, esp32-arduino-libs
+ * SDK, newlib platform) so they are not applied to projects built for other
+ * platforms that happen to have ESP packages installed globally.
+ */
+function isEspressifEntries(entries) {
+  const markerRe =
+    /framework-arduinoespressif|framework-espidf|esp-idf|CONFIG_IDF_TARGET_|(?:xtensa|riscv\d+)-esp|xtensa-lx106|esp-clang/i;
+  for (const entry of entries) {
+    const args = entry.arguments || [];
+    for (const a of args) {
+      if (typeof a === 'string' && markerRe.test(a)) {
+        return true;
+      }
+    }
+    if (entry.file && markerRe.test(entry.file)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * For Arduino-as-component projects (framework = arduino, espidf), the
  * project-root compile_commands.json (produced by `pio run -t compiledb`)
  * generates entries for project source files without the Arduino core
@@ -1162,26 +1188,34 @@ export async function fixupCompileCommands(projectDir, envDir) {
     delete entry.command;
   }
 
-  // 4. For Arduino-as-component projects (framework = arduino, espidf), the
-  //    project-root compile_commands.json for project src/ files does not
-  //    include the Arduino core headers (cores/esp32, variants/<variant>).
-  //    Scan all entries for Arduino core include paths and inject them into
-  //    project entries that are missing them.
-  await injectArduinoCoreIncludes(entries, projectDir, packagesDir);
+  // 4-4c. ESP-only include injections.  These steps hardcode Espressif
+  //    package paths (framework-arduinoespressif32, esp32-arduino-libs) and
+  //    must not run for projects targeting other platforms — e.g. an
+  //    Arduino/RP2040 project would otherwise get bogus esp32 core includes
+  //    injected whenever the ESP framework happens to be installed.
+  const isEspProject = isEspressifEntries(entries);
+  if (isEspProject) {
+    // 4. For Arduino-as-component projects (framework = arduino, espidf),
+    //    the project-root compile_commands.json for project src/ files does
+    //    not include the Arduino core headers (cores/esp32, variants/<variant>).
+    //    Scan all entries for Arduino core include paths and inject them into
+    //    project entries that are missing them.
+    await injectArduinoCoreIncludes(entries, projectDir, packagesDir);
 
-  // 4b. Inject framework-arduinoespressif32-libs SDK include path
-  //     (contains sdkconfig.h) which PIO's compiledb target omits.
-  await injectLibsSdkconfigInclude(entries, projectDir, packagesDir, envDir);
+    // 4b. Inject framework-arduinoespressif32-libs SDK include path
+    //     (contains sdkconfig.h) which PIO's compiledb target omits.
+    await injectLibsSdkconfigInclude(entries, projectDir, packagesDir, envDir);
 
-  // 4c. When picolibc is used, inject Arduino newlib platform include path
-  //     which provides compatible headers for picolibc.
-  // Check if any entry uses picolibc
-  const hasPicolibc = entries.some((e) => {
-    const args = e.arguments || [];
-    return args.some((a) => typeof a === 'string' && a.includes('picolibc.specs'));
-  });
-  if (hasPicolibc) {
-    await injectArduinoNewlibPlatformInclude(entries, packagesDir);
+    // 4c. When picolibc is used, inject Arduino newlib platform include path
+    //     which provides compatible headers for picolibc.
+    // Check if any entry uses picolibc
+    const hasPicolibc = entries.some((e) => {
+      const args = e.arguments || [];
+      return args.some((a) => typeof a === 'string' && a.includes('picolibc.specs'));
+    });
+    if (hasPicolibc) {
+      await injectArduinoNewlibPlatformInclude(entries, packagesDir);
+    }
   }
 
   // 5. Add synthetic entries for project header/source files that aren't in
