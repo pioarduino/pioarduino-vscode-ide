@@ -321,7 +321,7 @@ export async function ensureCompileCommands(projectDir, observer, envDir) {
  */
 function isEspressifEntries(entries) {
   const markerRe =
-    /framework-arduinoespressif32|framework-espidf|esp-idf|CONFIG_IDF_TARGET_|(?:xtensa|riscv\d+)-esp|esp-clang|espressif/i;
+    /framework-arduinoespressif|framework-espidf|esp-idf|CONFIG_IDF_TARGET_|(?:xtensa|riscv\d+)-esp|xtensa-lx106|esp-clang/i;
   for (const entry of entries) {
     const args = entry.arguments || [];
     for (const a of args) {
