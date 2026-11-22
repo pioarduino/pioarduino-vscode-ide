@@ -14,6 +14,7 @@ import {
   disposeClangdCcWatcher,
   disposeIdfCcWatcher,
   ensureCompileCommands,
+  fixupCompileCommands,
   getActiveBackend,
   getActiveBackendId,
   getActiveConflictedExtensionIds,
@@ -878,5 +879,102 @@ describe('Database freshness validation', () => {
     expect(fsMock.readFile).toHaveBeenCalledWith(windowsClangdPath, 'utf8');
     // Should not warn because Windows comparison is case-insensitive
     expect(vscode.window.showWarningMessage).not.toHaveBeenCalled();
+  });
+});
+
+// ─── fixupCompileCommands: ESP injection gating ───────────────────────────────
+
+describe('fixupCompileCommands ESP injection gating', () => {
+  const projectDir = '/workspace/rp2040-project';
+  const sourcePath = path.join(projectDir, 'compile_commands.json');
+  const destPath = path.join(projectDir, '.cache', 'clangd', 'compile_commands.json');
+  const packagesDir = '/home/user/.platformio/packages';
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    setBackend('clangd');
+    setExtensionInstalled(true);
+    vscode.window.showInformationMessage = jest.fn();
+    Object.defineProperty(process, 'platform', {
+      value: 'darwin',
+      writable: true,
+    });
+
+    // The PIO packages dir contains the ESP frameworks (as it would on a
+    // machine that also builds ESP projects) — the injections must still
+    // not run for a non-ESP project.
+    fsMock.readdir.mockImplementation((dirPath) => {
+      if (dirPath === packagesDir) {
+        return Promise.resolve([
+          'framework-arduinoespressif32',
+          'framework-arduinoespressif32-libs',
+          'framework-arduinopico',
+          'toolchain-rp2040-earlephilhower',
+        ]);
+      }
+      return Promise.resolve([]);
+    });
+    // Let ESP framework paths "exist" so that, without the isEspressifEntries
+    // gate, injectArduinoCoreIncludes would find cores/esp32/Arduino.h and
+    // inject it into the RP2040 project entry.
+    fsMock.access.mockImplementation((filePath) => {
+      if (
+        typeof filePath === 'string' &&
+        filePath.includes('framework-arduinoespressif32')
+      ) {
+        return Promise.resolve();
+      }
+      return Promise.reject(Object.assign(new Error('ENOENT'), { code: 'ENOENT' }));
+    });
+    fsMock.mkdir.mockResolvedValue(undefined);
+    fsMock.writeFile.mockResolvedValue(undefined);
+    fsMock.stat.mockImplementation((filePath) => {
+      if (filePath === sourcePath) {
+        return Promise.resolve({ isFile: () => true });
+      }
+      return Promise.reject(Object.assign(new Error('ENOENT'), { code: 'ENOENT' }));
+    });
+  });
+
+  it('does not inject Espressif includes for a non-ESP (RP2040) project', async () => {
+    const db = [
+      {
+        directory: projectDir,
+        file: 'src/main.cpp',
+        arguments: [
+          'arm-none-eabi-gcc',
+          '-c',
+          'src/main.cpp',
+          '-I.pio/libdeps/env1/FastLED/src',
+          '-I/home/user/.platformio/packages/framework-arduinopico/cores/rp2040',
+          '-I/home/user/.platformio/packages/framework-arduinopico/variants/adafruit_feather_nrf52840',
+          '-std=gnu++11',
+          '-o',
+          'main.cpp.o',
+        ],
+      },
+    ];
+    fsMock.readFile.mockImplementation((filePath) => {
+      if (filePath === sourcePath) {
+        return Promise.resolve(JSON.stringify(db));
+      }
+      return Promise.reject(Object.assign(new Error('ENOENT'), { code: 'ENOENT' }));
+    });
+
+    await fixupCompileCommands(projectDir, undefined);
+
+    expect(fsMock.writeFile).toHaveBeenCalledWith(
+      destPath,
+      expect.any(String),
+      'utf-8',
+    );
+    const written = JSON.parse(fsMock.writeFile.mock.calls[0][1]);
+    const allArgs = written.flatMap((e) => e.arguments || []).join('\0');
+    expect(allArgs).not.toContain('framework-arduinoespressif32');
+    expect(allArgs).not.toContain('cores/esp32');
+    expect(allArgs).not.toContain('esp32-arduino-libs');
+    expect(allArgs).not.toContain('CONFIG_IDF_TARGET_');
+    // The project's own Arduino core include must be preserved.
+    expect(allArgs).toContain('framework-arduinopico/cores/rp2040');
   });
 });
