@@ -179,6 +179,10 @@ export default class ProjectManager {
         'platformio-ide.activeEnvironment',
         async () => await this._pool.getActiveObserver().revealActiveEnvironment(),
       ),
+      vscode.commands.registerCommand(
+        'platformio-ide.activePort',
+        () => this._taskManager?.getSelectedPort() || '',
+      ),
     ];
     this.internalSubscriptions = [];
 

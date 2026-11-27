@@ -513,6 +513,10 @@ export default class ProjectTaskManager {
     }
   }
 
+  getSelectedPort() {
+    return this._customPort || '';
+  }
+
   switchPort(port = undefined) {
     updateProjectItemState(this.projectDir, 'customPort', port);
     this._customPort = port;
