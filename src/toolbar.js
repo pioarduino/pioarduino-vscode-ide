@@ -140,6 +140,8 @@ export default class PIOToolbar {
         arg = arg.replace(match, value ?? '');
       }
     }
+    // Remove any trailing --option flag left without a value after expansion
+    arg = arg.replace(/\s+--[\w-]+\s*$/, '');
     return arg;
   }
 }
