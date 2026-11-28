@@ -4,6 +4,18 @@ All notable changes to the **pioarduino IDE** VSCode extension are documented in
 
 ---
 
+## [1.4.9] - 2026-11-27
+
+### ✨ New Features
+
+- **platformio-ide.activePort** - Added a command to retrieve the currently selected project port. It removes the `--port` command when empty (to trigger Auto selection) or no task manager is available.
+
+### 🐛 Bug Fix
+
+- **return a valid value** - Command-based argument variables now resolve to an empty value when the command returns null or undefined; other results remain unchanged
+
+---
+
 ## [1.4.8] - 2026-11-22
 
 ### 🐛 Bug Fix
